@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { assetAPI } from '../services/api';
 import { getErrorMessage, getStatusLabel, getStatusColor } from '../utils/helpers';
-import './pages.css';
 
 const AssetsPage = () => {
   const [assets, setAssets] = useState([]);
@@ -39,21 +38,21 @@ const AssetsPage = () => {
   };
 
   return (
-    <div className="main-content">
-      <div className="page-header">
-        <h1 className="page-title">Assets</h1>
+    <div className="flex-1 p-5">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-slate-900">Assets</h1>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="px-5 py-4 rounded-lg mb-5 text-sm border-l-4 bg-red-50 text-red-900 border-l-red-600">{error}</div>}
 
-      <div className="list-filters">
-        <div className="filter-group">
-          <label>Status:</label>
+      <div className="flex gap-2 mb-5 flex-wrap">
+        <div className="flex gap-2 items-center">
+          <label className="text-xs font-medium text-slate-600">Status:</label>
           <select
             name="status"
             value={filters.status}
             onChange={handleFilterChange}
-            className="form-select"
+            className="px-3 py-2 border border-slate-300 rounded-md text-xs"
           >
             <option value="">All</option>
             <option value="active">Active</option>
@@ -63,13 +62,13 @@ const AssetsPage = () => {
           </select>
         </div>
 
-        <div className="filter-group">
-          <label>Type:</label>
+        <div className="flex gap-2 items-center">
+          <label className="text-xs font-medium text-slate-600">Type:</label>
           <select
             name="asset_type"
             value={filters.asset_type}
             onChange={handleFilterChange}
-            className="form-select"
+            className="px-3 py-2 border border-slate-300 rounded-md text-xs"
           >
             <option value="">All</option>
             <option value="laptop">Laptop</option>
@@ -82,53 +81,55 @@ const AssetsPage = () => {
       </div>
 
       {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          Loading Assets...
+        <div className="flex flex-col justify-center items-center min-h-[400px] bg-white rounded-xl gap-5">
+          <div className="w-12 h-12 border-4 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
+          <p>Loading Assets...</p>
         </div>
       ) : (
-        <div className="list-container">
+        <div className="bg-white rounded-lg p-5 shadow-sm">
           {assets.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🖥️</div>
-              <div className="empty-state-title">No Assets Found</div>
-              <div className="empty-state-message">No assets match your criteria</div>
+            <div className="text-center p-10 text-slate-400 text-sm">
+              <div className="text-5xl mb-4">🖥️</div>
+              <div className="text-lg font-semibold mb-2 text-slate-500">No Assets Found</div>
+              <div className="text-sm">No assets match your criteria</div>
             </div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Serial Number</th>
-                  <th>Model</th>
-                  <th>Type</th>
-                  <th>Department</th>
-                  <th>In Charge</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {assets.map(asset => (
-                  <tr key={asset.id}>
-                    <td><strong>{asset.serial_number || '-'}</strong></td>
-                    <td>{asset.model}</td>
-                    <td>{asset.asset_type}</td>
-                    <td>{asset.dept_name || '-'}</td>
-                    <td>{asset.incharge_name || '-'}</td>
-                    <td>
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: getStatusColor(asset.status) + '30',
-                          color: getStatusColor(asset.status)
-                        }}
-                      >
-                        {getStatusLabel(asset.status)}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-slate-100 border-b-2 border-slate-300">
+                  <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Serial Number</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Model</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Type</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Department</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">In Charge</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {assets.map(asset => (
+                    <tr key={asset.id} className="border-b border-slate-300 hover:bg-slate-50">
+                      <td className="px-3 py-3"><strong>{asset.serial_number || '-'}</strong></td>
+                      <td className="px-3 py-3">{asset.model}</td>
+                      <td className="px-3 py-3">{asset.asset_type}</td>
+                      <td className="px-3 py-3">{asset.dept_name || '-'}</td>
+                      <td className="px-3 py-3">{asset.incharge_name || '-'}</td>
+                      <td className="px-3 py-3">
+                        <span
+                          className="inline-block px-3 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: getStatusColor(asset.status) + '30',
+                            color: getStatusColor(asset.status)
+                          }}
+                        >
+                          {getStatusLabel(asset.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

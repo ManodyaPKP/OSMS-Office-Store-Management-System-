@@ -6,13 +6,12 @@ import Dashboard from './pages/Dashboard';
 import DepartmentsPage from './pages/DepartmentsPage';
 import AssetsPage from './pages/AssetsPage';
 import RepairsPage from './pages/RepairsPage';
-import './App.css';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return <div className="flex justify-center items-center min-h-[400px] text-base text-slate-500">Loading...</div>;
   }
 
   return isAuthenticated ? children : <Navigate to="/login" />;

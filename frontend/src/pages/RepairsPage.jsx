@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { repairAPI } from '../services/api';
 import { getErrorMessage, formatDate, getStatusLabel, getStatusColor } from '../utils/helpers';
-import './pages.css';
 
 const RepairsPage = () => {
   const [repairs, setRepairs] = useState([]);
@@ -38,21 +37,21 @@ const RepairsPage = () => {
   };
 
   return (
-    <div className="main-content">
-      <div className="page-header">
-        <h1 className="page-title">Repair Jobs</h1>
+    <div className="flex-1 p-5">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-slate-900">Repair Jobs</h1>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="px-5 py-4 rounded-lg mb-5 text-sm border-l-4 bg-red-50 text-red-900 border-l-red-600">{error}</div>}
 
-      <div className="list-filters">
-        <div className="filter-group">
-          <label>Status:</label>
+      <div className="flex gap-2 mb-5 flex-wrap">
+        <div className="flex gap-2 items-center">
+          <label className="text-xs font-medium text-slate-600">Status:</label>
           <select
             name="status"
             value={filters.status}
             onChange={handleFilterChange}
-            className="form-select"
+            className="px-3 py-2 border border-slate-300 rounded-md text-xs"
           >
             <option value="">All</option>
             <option value="pending">Pending</option>
@@ -64,55 +63,57 @@ const RepairsPage = () => {
       </div>
 
       {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          Loading Repairs...
+        <div className="flex flex-col justify-center items-center min-h-[400px] bg-white rounded-xl gap-5">
+          <div className="w-12 h-12 border-4 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
+          <p>Loading Repairs...</p>
         </div>
       ) : (
-        <div className="list-container">
+        <div className="bg-white rounded-lg p-5 shadow-sm">
           {repairs.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon">🔧</div>
-              <div className="empty-state-title">No Repairs Found</div>
-              <div className="empty-state-message">No repair jobs match your criteria</div>
+            <div className="text-center p-10 text-slate-400 text-sm">
+              <div className="text-5xl mb-4">🔧</div>
+              <div className="text-lg font-semibold mb-2 text-slate-500">No Repairs Found</div>
+              <div className="text-sm">No repair jobs match your criteria</div>
             </div>
           ) : (
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Asset Model</th>
-                  <th>Serial #</th>
-                  <th>Department</th>
-                  <th>Issue</th>
-                  <th>Submitted Date</th>
-                  <th>Cost</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repairs.map(repair => (
-                  <tr key={repair.id}>
-                    <td><strong>{repair.model || '-'}</strong></td>
-                    <td>{repair.serial_number || '-'}</td>
-                    <td>{repair.dept_name || '-'}</td>
-                    <td className="truncate">{repair.issue_description?.substring(0, 30) || '-'}...</td>
-                    <td>{formatDate(repair.submitted_date)}</td>
-                    <td>${repair.invoice_amount?.toFixed(2) || '0.00'}</td>
-                    <td>
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: getStatusColor(repair.repair_status) + '30',
-                          color: getStatusColor(repair.repair_status)
-                        }}
-                      >
-                        {getStatusLabel(repair.repair_status)}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-slate-100 border-b-2 border-slate-300">
+                  <tr>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Asset Model</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Serial #</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Department</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Issue</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Submitted Date</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Cost</th>
+                    <th className="px-3 py-3 text-left font-semibold text-slate-700">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {repairs.map(repair => (
+                    <tr key={repair.id} className="border-b border-slate-300 hover:bg-slate-50">
+                      <td className="px-3 py-3"><strong>{repair.model || '-'}</strong></td>
+                      <td className="px-3 py-3">{repair.serial_number || '-'}</td>
+                      <td className="px-3 py-3">{repair.dept_name || '-'}</td>
+                      <td className="px-3 py-3 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap">{repair.issue_description?.substring(0, 30) || '-'}...</td>
+                      <td className="px-3 py-3">{formatDate(repair.submitted_date)}</td>
+                      <td className="px-3 py-3">${repair.invoice_amount?.toFixed(2) || '0.00'}</td>
+                      <td className="px-3 py-3">
+                        <span
+                          className="inline-block px-3 py-1 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: getStatusColor(repair.repair_status) + '30',
+                            color: getStatusColor(repair.repair_status)
+                          }}
+                        >
+                          {getStatusLabel(repair.repair_status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

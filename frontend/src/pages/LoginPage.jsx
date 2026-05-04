@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { getErrorMessage } from '../utils/helpers';
-import './pages.css';
+import { Button, Input, Alert } from '../components/UI';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -33,56 +33,82 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
-        <div className="login-header">
-          <h1>OSMS</h1>
-          <p>Office Store Management System</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-500 to-primary-700 flex items-center justify-center p-4">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full translate-x-1/2 translate-y-1/2"></div>
+      </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+      {/* Login Card */}
+      <div className="relative w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-primary px-8 py-12 text-center">
+            <div className="text-5xl mb-4">⚙️</div>
+            <h1 className="text-3xl font-bold text-black">Store Management</h1>
+            <p className="text-primary-100 text-sm text-black mt-2">System Administration Portal</p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label className="form-label">Username</label>
-            <input
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            {error && (
+              <Alert variant="danger" icon="⚠️">
+                {error}
+              </Alert>
+            )}
+
+            <Input
+              label="Username"
               type="text"
-              className="form-input"
+              placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              required
               disabled={loading}
+              required
             />
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <input
+            <Input
+              label="Password"
               type="password"
-              className="form-input"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
               disabled={loading}
+              required
             />
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </span>
+              ) : (
+                '🔐 Sign In'
+              )}
+            </Button>
+          </form>
+
+          {/* Footer */}
+          <div className="bg-slate-50 px-8 py-4 border-t border-slate-200 text-center">
+            <p className="text-sm text-slate-600">
+              Department Of Government Information 
+            </p>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary btn-login"
-            disabled={loading}
-          >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <p className="demo-credentials">
-            Demo Credentials:<br />
-            Username: admin_user | Password: (check database)<br />
-            <small>For testing purposes</small>
+        {/* Info Box */}
+        <div className="mt-6 bg-white bg-opacity-20 backdrop-blur rounded-xl p-4 text-white text-sm">
+          <p className="flex items-start gap-2">
+            <span className="text-lg">ℹ️</span>
+            <span>Use your administrative credentials to access the store management system.</span>
           </p>
         </div>
       </div>

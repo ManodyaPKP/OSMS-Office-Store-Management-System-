@@ -14,8 +14,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const allowedOrigins = process.env.NODE_ENV === 'development' 
+  ? /^http:\/\/localhost/ // Allow any localhost port in development
+  : (process.env.FRONTEND_URL || 'http://localhost:5173');
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -28,6 +32,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
   next();
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'OSMS Backend API',
+    version: '1.0.0',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Health check endpoint

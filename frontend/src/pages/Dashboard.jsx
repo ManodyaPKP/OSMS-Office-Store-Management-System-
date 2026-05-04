@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { repairAPI, assetAPI, departmentAPI } from '../services/api';
-import { getErrorMessage, formatDate, getStatusLabel, getStatusColor } from '../utils/helpers';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import './dashboard.css';
+import { useNavigate } from 'react-router-dom';
+import { repairAPI, assetAPI } from '../services/api';
+import { getErrorMessage, formatDate, getStatusLabel } from '../utils/helpers';
+import { Card, Badge, Alert, LoadingSpinner, EmptyState } from '../components/UI';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [assets, setAssets] = useState(null);
   const [repairs, setRepairs] = useState([]);
@@ -29,13 +31,11 @@ const Dashboard = () => {
       if (repairStats.data.success) {
         setStats(repairStats.data.data);
       }
-
       if (assetStats.data.success) {
         setAssets(assetStats.data.data);
       }
-
       if (repairsList.data.success) {
-        setRepairs(repairsList.data.data.slice(0, 8)); // Last 8 repairs
+        setRepairs(repairsList.data.data.slice(0, 8));
       }
     } catch (err) {
       setError(getErrorMessage(err));
@@ -46,245 +46,148 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     logout();
+    navigate('/login');
   };
 
-  // Prepare chart data for repair status
+  const StatCard = ({ icon, label, value }) => (
+    <Card hover>
+      <div className="flex items-center gap-4">
+        <div className="text-4xl">{icon}</div>
+        <div className="flex-1">
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-sm text-slate-600">{label}</p>
+        </div>
+      </div>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   const repairStatusData = stats ? [
     { name: 'Completed', value: stats.completed_repairs || 0, color: '#10b981' },
     { name: 'Pending', value: stats.pending_repairs || 0, color: '#f59e0b' },
     { name: 'In Progress', value: stats.in_progress_repairs || 0, color: '#3b82f6' }
   ].filter(item => item.value > 0) : [];
 
-  // Prepare chart data for cost breakdown
-  const costData = stats ? [
-    {
-      category: 'Assessment',
-      cost: stats.total_assessment_cost || 0
-    },
-    {
-      category: 'Invoice',
-      cost: stats.total_invoice_cost || 0
-    }
-  ] : [];
-
-  const totalRepairs = stats?.total_repairs || 0;
-
   return (
-    <div className="dashboard-wrapper">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-left">
-          <h1 className="dashboard-title">Dashboard</h1>
-          <p className="dashboard-subtitle">Welcome to OSMS - Office Store Management System</p>
-        </div>
-        <div className="header-right">
-          <div className="user-profile">
-            <div className="user-avatar">👤</div>
-            <div className="user-details">
-              <p className="user-name">{user?.full_name || 'User'}</p>
-              <p className="user-role">{user?.role || 'User'}</p>
-            </div>
+      <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-slate-600">{user?.full_name}</span>
+            <button onClick={handleLogout} className="btn-secondary text-sm">
+              Logout
+            </button>
           </div>
-          <button className="btn-logout" onClick={handleLogout}>
-            Logout
-          </button>
         </div>
       </div>
 
-      {/* Error Alert */}
-      {error && <div className="alert alert-error">{error}</div>}
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && <Alert variant="danger" icon="⚠️">{error}</Alert>}
 
-      {loading ? (
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading Dashboard...</p>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          <StatCard icon="🔧" label="Total Repairs" value={stats?.total_repairs || 0} />
+          <StatCard icon="✅" label="Completed" value={stats?.completed_repairs || 0} />
+          <StatCard icon="⏳" label="Pending" value={stats?.pending_repairs || 0} />
+          <StatCard icon="⚙️" label="In Progress" value={stats?.in_progress_repairs || 0} />
+          <StatCard icon="💰" label="Total Cost" value={`$${(stats?.total_invoice_cost || 0).toFixed(0)}`} />
+          <StatCard icon="🖥️" label="Total Assets" value={assets?.total_assets || 0} />
         </div>
-      ) : (
-        <>
-          {/* Key Metrics */}
-          <div className="metrics-grid">
-            <div className="metric-card metric-primary">
-              <div className="metric-icon">🔧</div>
-              <div className="metric-content">
-                <p className="metric-value">{stats?.total_repairs || 0}</p>
-                <p className="metric-label">Total Repairs</p>
-              </div>
-            </div>
 
-            <div className="metric-card metric-success">
-              <div className="metric-icon">✅</div>
-              <div className="metric-content">
-                <p className="metric-value">{stats?.completed_repairs || 0}</p>
-                <p className="metric-label">Completed</p>
-              </div>
-            </div>
-
-            <div className="metric-card metric-warning">
-              <div className="metric-icon">⏳</div>
-              <div className="metric-content">
-                <p className="metric-value">{stats?.pending_repairs || 0}</p>
-                <p className="metric-label">Pending</p>
-              </div>
-            </div>
-
-            <div className="metric-card metric-info">
-              <div className="metric-icon">💰</div>
-              <div className="metric-content">
-                <p className="metric-value">${(stats?.total_invoice_cost || 0).toFixed(0)}</p>
-                <p className="metric-label">Total Cost</p>
-              </div>
-            </div>
-
-            <div className="metric-card metric-secondary">
-              <div className="metric-icon">🖥️</div>
-              <div className="metric-content">
-                <p className="metric-value">{assets?.total_assets || 0}</p>
-                <p className="metric-label">Total Assets</p>
-              </div>
-            </div>
-
-            <div className="metric-card metric-danger">
-              <div className="metric-icon">⚠️</div>
-              <div className="metric-content">
-                <p className="metric-value">{assets?.under_repair_count || 0}</p>
-                <p className="metric-label">Under Repair</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Charts Section */}
-          <div className="charts-section">
-            <div className="chart-container">
-              <div className="chart-header">
-                <h3>Repair Status Distribution</h3>
-              </div>
-              {repairStatusData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={repairStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {repairStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="no-data">No repair data available</p>
-              )}
-            </div>
-
-            <div className="chart-container">
-              <div className="chart-header">
-                <h3>Cost Breakdown</h3>
-              </div>
-              {costData.some(item => item.cost > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={costData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="category" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
-                    <Bar dataKey="cost" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="no-data">No cost data available</p>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Repairs */}
-          <div className="recent-section">
-            <div className="section-header">
-              <h3>Recent Repair Jobs</h3>
-              <a href="/repairs" className="view-all-link">View All →</a>
-            </div>
-            
-            {repairs.length > 0 ? (
-              <div className="repairs-table-wrapper">
-                <table className="repairs-table">
-                  <thead>
-                    <tr>
-                      <th>Asset</th>
-                      <th>Serial #</th>
-                      <th>Issue</th>
-                      <th>Submitted</th>
-                      <th>Cost</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {repairs.map(repair => (
-                      <tr key={repair.id}>
-                        <td className="font-bold">{repair.model || '-'}</td>
-                        <td>{repair.serial_number || '-'}</td>
-                        <td className="text-truncate">{repair.issue_description?.substring(0, 35) || '-'}...</td>
-                        <td>{formatDate(repair.submitted_date)}</td>
-                        <td className="text-right">${repair.invoice_amount?.toFixed(2) || '0.00'}</td>
-                        <td>
-                          <span
-                            className="status-badge"
-                            style={{
-                              backgroundColor: getStatusColor(repair.repair_status) + '20',
-                              color: getStatusColor(repair.repair_status),
-                              padding: '6px 12px',
-                              borderRadius: '20px',
-                              fontSize: '12px',
-                              fontWeight: '500'
-                            }}
-                          >
-                            {getStatusLabel(repair.repair_status)}
-                          </span>
-                        </td>
-                      </tr>
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Repair Status</h3>
+            {repairStatusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={repairStatusData} cx="50%" cy="50%" outerRadius={100} fill="#8884d8" dataKey="value">
+                    {repairStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             ) : (
-              <div className="empty-state">
-                <p>No recent repairs</p>
-              </div>
+              <EmptyState title="No data" />
             )}
-          </div>
+          </Card>
 
-          {/* Quick Links */}
-          <div className="quick-links-section">
-            <h3>Quick Actions</h3>
-            <div className="quick-links-grid">
-              <a href="/assets" className="quick-link">
-                <span className="quick-link-icon">🖥️</span>
-                <span className="quick-link-text">View Assets</span>
-              </a>
-              <a href="/departments" className="quick-link">
-                <span className="quick-link-icon">🏢</span>
-                <span className="quick-link-text">Departments</span>
-              </a>
-              <a href="/repairs" className="quick-link">
-                <span className="quick-link-icon">🔧</span>
-                <span className="quick-link-text">Repairs</span>
-              </a>
-              <a href="/" className="quick-link">
-                <span className="quick-link-icon">📊</span>
-                <span className="quick-link-text">Reports</span>
-              </a>
-            </div>
+          <Card>
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Cost Breakdown</h3>
+            {stats && (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={[
+                  { name: 'Assessment', value: stats.total_assessment_cost || 0 },
+                  { name: 'Invoice', value: stats.total_invoice_cost || 0 }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#0284c7" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        </div>
+
+        {/* Recent Repairs */}
+        <Card>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-900">Recent Repairs</h3>
+            <button onClick={() => navigate('/repairs')} className="btn-primary text-sm">
+              View All →
+            </button>
           </div>
-        </>
-      )}
+          
+          {repairs.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-100 border-b-2 border-slate-300">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Asset</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Issue</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {repairs.map((repair) => (
+                    <tr key={repair.id} className="border-b border-slate-200 hover:bg-cyan-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-slate-700">#{repair.id}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{repair.asset_name || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700 line-clamp-1">{repair.issue || 'N/A'}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <Badge variant={repair.status === 'completed' ? 'success' : repair.status === 'pending' ? 'warning' : 'info'}>
+                          {getStatusLabel(repair.status)}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{formatDate(repair.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState icon="📋" title="No repairs" message="No repair records found" />
+          )}
+        </Card>
+      </div>
     </div>
   );
 };
 
 export default Dashboard;
-
