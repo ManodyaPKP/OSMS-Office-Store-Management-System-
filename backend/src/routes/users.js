@@ -10,6 +10,7 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    console.log(`\n🔍 LOGIN ATTEMPT: username="${username}"`);
 
     if (!username || !password) {
       return res.status(400).json({
@@ -22,8 +23,54 @@ router.post('/login', async (req, res) => {
       'SELECT * FROM users WHERE username = ? AND is_active = true',
       [username]
     );
+    console.log(`✓ Checked users table: ${users.length} rows found`);
 
     if (users.length === 0) {
+      // Check if this username exists in pending_users table
+      const pendingUsers = await executeQuery(
+        'SELECT id, status, approval_notes, first_name, last_name, created_at FROM pending_users WHERE username = ?',
+        [username]
+      );
+      console.log(`✓ Checked pending_users table: ${pendingUsers.length} rows found`);
+      
+      if (pendingUsers.length > 0) {
+        const pendingUser = pendingUsers[0];
+        console.log(`  Status: ${pendingUser.status}, Notes: ${pendingUser.approval_notes}`);
+
+        // Registration has been rejected
+        if (pendingUser.status === 'rejected') {
+          console.log('  → Returning 403 REJECTED response');
+          return res.status(403).json({
+            success: false,
+            message: 'Your registration has been rejected by the administrator.',
+            reason: pendingUser.approval_notes || 'No reason provided',
+            status: 'rejected'
+          });
+        }
+
+        // Registration is still pending
+        if (pendingUser.status === 'pending') {
+          console.log('  → Returning 403 PENDING response');
+          return res.status(403).json({
+            success: false,
+            message: 'Your registration is still pending admin approval. Please check back later.',
+            status: 'pending'
+          });
+        }
+
+        // Registration was approved but user not found in users table (shouldn't happen)
+        if (pendingUser.status === 'approved') {
+          console.log('  → Returning 403 APPROVED_NOT_ACTIVE response');
+          return res.status(403).json({
+            success: false,
+            message: 'Your registration has been approved but your account is not yet active. Please contact support.',
+            status: 'approved_not_active'
+          });
+        }
+      }
+
+      // User not found at all
+      console.log('  → Returning 401 USER_NOT_FOUND');
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -225,6 +272,8 @@ router.post('/register/new', async (req, res) => {
       id_number, registration_note, username, password
     } = req.body;
 
+    console.log(`\n📝 REGISTRATION ATTEMPT: username="${username}", user_type="${user_type}"`);
+
     // Validation
     if (!first_name || !last_name || !mobile_number || !user_type) {
       return res.status(400).json({
@@ -269,12 +318,15 @@ router.post('/register/new', async (req, res) => {
       ]
     );
 
+    console.log(`✅ Registration inserted: ID=${result.insertId}, username="${username}"`);
+
     res.status(201).json({
       success: true,
       message: 'Registration submitted successfully. Please wait for admin approval.',
       registration_id: result.insertId
     });
   } catch (error) {
+    console.error(`❌ Registration error for username="${username}":`, error.message);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({
         success: false,

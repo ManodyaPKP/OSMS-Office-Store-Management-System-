@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { repairAPI } from '../services/api';
 import { getErrorMessage, formatDate, getStatusLabel, getStatusColor } from '../utils/helpers';
 
 const RepairsPage = () => {
+  const navigate = useNavigate();
   const [repairs, setRepairs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,7 +40,13 @@ const RepairsPage = () => {
 
   return (
     <div className="flex-1 p-5">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+        >
+          ← Back
+        </button>
         <h1 className="text-3xl font-bold text-slate-900">Repair Jobs</h1>
       </div>
 

@@ -23,10 +23,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // On the login page, allow 401/403 errors to propagate so the page can handle them
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Only redirect if not on the login page
+      if (window.location.pathname !== '/login') {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

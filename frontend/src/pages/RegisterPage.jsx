@@ -44,7 +44,7 @@ const RegisterPage = () => {
       const payload = {
         first_name: firstName,
         last_name: lastName,
-        email: email || undefined,
+        email: email || null,
         mobile_number: mobileNumber,
         user_type: userType,
         username,
@@ -73,14 +73,17 @@ const RegisterPage = () => {
       });
 
       const data = await response.json();
+      console.log('Registration response:', { status: response.status, data });
 
       if (!response.ok) {
         throw new Error(data.message || 'Registration failed');
       }
 
+      console.log('Registration successful with username:', username);
       setSuccess('✅ Registration submitted! Please wait for admin approval before logging in.');
       setTimeout(() => navigate('/login'), 3000);
     } catch (err) {
+      console.error('Registration error:', err);
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
@@ -94,7 +97,13 @@ const RegisterPage = () => {
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full translate-x-1/2 translate-y-1/2"></div>
       </div>
 
-      <div className="relative w-full max-w-2xl">
+      <div className="relative w-full max-w-2xl">        {/* Back Button */}
+        <button
+          onClick={() => navigate('/login')}
+          className="mb-4 flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors font-medium backdrop-blur-sm"
+        >
+          ← Back to Login
+        </button>
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-cyan-600 to-cyan-700 px-8 py-12 text-center">

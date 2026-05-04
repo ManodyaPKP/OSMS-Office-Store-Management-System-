@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { assetAPI } from '../services/api';
 import { getErrorMessage, getStatusLabel, getStatusColor } from '../utils/helpers';
 
 const AssetsPage = () => {
+  const navigate = useNavigate();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -39,7 +41,13 @@ const AssetsPage = () => {
 
   return (
     <div className="flex-1 p-5">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+        >
+          ← Back
+        </button>
         <h1 className="text-3xl font-bold text-slate-900">Assets</h1>
       </div>
 
