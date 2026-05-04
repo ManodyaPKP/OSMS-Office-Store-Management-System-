@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { getErrorMessage } from '../utils/helpers';
@@ -98,8 +98,14 @@ const LoginPage = () => {
 
           {/* Footer */}
           <div className="bg-slate-50 px-8 py-4 border-t border-slate-200 text-center">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-slate-600 mb-3">
               Department Of Government Information 
+            </p>
+            <p className="text-sm">
+              Don't have an account?{' '}
+              <Link to="/register" className="font-semibold text-cyan-600 hover:text-cyan-700">
+                Register here
+              </Link>
             </p>
           </div>
         </div>

@@ -37,6 +37,9 @@ export const authAPI = {
   login: (username, password) =>
     api.post('/users/login', { username, password }),
   
+  register: (data) =>
+    axios.post('http://localhost:5000/api/users/register/new', data),
+  
   getProfile: () =>
     api.get('/users/profile'),
   
@@ -44,7 +47,17 @@ export const authAPI = {
     api.post(`/users/${userId}/change-password`, {
       old_password: oldPassword,
       new_password: newPassword
-    })
+    }),
+
+  // Admin: Manage pending registrations
+  getPendingRegistrations: () =>
+    api.get('/users/registrations/pending'),
+
+  approveRegistration: (registrationId, deptId) =>
+    api.post(`/users/registrations/${registrationId}/approve`, { dept_id: deptId }),
+
+  rejectRegistration: (registrationId, notes) =>
+    api.post(`/users/registrations/${registrationId}/reject`, { approval_notes: notes })
 };
 
 // ===== Department APIs =====

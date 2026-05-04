@@ -37,6 +37,46 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- ============================================
+-- TABLE: pending_users (User Registration Approval)
+-- ============================================
+CREATE TABLE IF NOT EXISTS pending_users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  email VARCHAR(100),
+  password_hash VARCHAR(255) NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  mobile_number VARCHAR(20),
+  user_type ENUM('staff', 'technician', 'other') NOT NULL,
+  
+  -- Staff Fields
+  department_name VARCHAR(100),
+  section_name VARCHAR(100),
+  unit_name VARCHAR(100),
+  position VARCHAR(100),
+  
+  -- Technician Fields
+  company_shop_name VARCHAR(100),
+  company_phone VARCHAR(20),
+  address TEXT,
+  
+  -- Other Fields
+  id_number VARCHAR(50),
+  registration_note TEXT,
+  
+  -- Approval Fields
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  approval_notes TEXT,
+  approved_by INT,
+  approval_date TIMESTAMP NULL,
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_email (email)
+);
+
+-- ============================================
 -- TABLE: assets
 -- ============================================
 CREATE TABLE IF NOT EXISTS assets (

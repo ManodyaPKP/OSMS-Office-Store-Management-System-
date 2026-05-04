@@ -2,10 +2,12 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import DepartmentsPage from './pages/DepartmentsPage';
 import AssetsPage from './pages/AssetsPage';
 import RepairsPage from './pages/RepairsPage';
+import ApprovalsPage from './pages/ApprovalsPage';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -23,6 +25,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       
       <Route
         path="/"
@@ -56,6 +59,15 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <RepairsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/approvals"
+        element={
+          <ProtectedRoute>
+            <ApprovalsPage />
           </ProtectedRoute>
         }
       />

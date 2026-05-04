@@ -1,46 +1,84 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { repairAPI, assetAPI } from '../services/api';
+import { repairAPI, assetAPI, authAPI } from '../services/api';
 import { getErrorMessage, formatDate, getStatusLabel } from '../utils/helpers';
-import { Card, Badge, Alert, LoadingSpinner, EmptyState } from '../components/UI';
+import { Card, Badge, Alert, LoadingSpinner, EmptyState, Button } from '../components/UI';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+let pendingCountRefreshInterval = null;
+
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [assets, setAssets] = useState(null);
   const [repairs, setRepairs] = useState([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+    
+    // Load pending count for admins
+    if (hasRole(['admin'])) {
+      loadPendingCount();
+      pendingCountRefreshInterval = setInterval(loadPendingCount, 15000);
+    }
+    
+    return () => {
+      if (pendingCountRefreshInterval) {
+        clearInterval(pendingCountRefreshInterval);
+      }
+    };
+  }, [hasRole]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [repairStats, assetStats, repairsList] = await Promise.all([
+      const requests = [
         repairAPI.getStats(),
         assetAPI.getStats(),
         repairAPI.getAll({ status: '' })
-      ]);
+      ];
 
-      if (repairStats.data.success) {
-        setStats(repairStats.data.data);
+      // Add pending registrations for admin users
+      if (hasRole(['admin'])) {
+        requests.push(authAPI.getPendingRegistrations());
       }
-      if (assetStats.data.success) {
-        setAssets(assetStats.data.data);
+
+      const results = await Promise.all(requests);
+      
+      if (results[0].data.success) {
+        setStats(results[0].data.data);
       }
-      if (repairsList.data.success) {
-        setRepairs(repairsList.data.data.slice(0, 8));
+      if (results[1].data.success) {
+        setAssets(results[1].data.data);
+      }
+      if (results[2].data.success) {
+        setRepairs(results[2].data.data.slice(0, 8));
+      }
+      if (hasRole(['admin']) && results[3] && results[3].data.success) {
+        setPendingRegistrations(results[3].data.data.slice(0, 5));
       }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPendingCount = async () => {
+    try {
+      const response = await authAPI.getPendingRegistrations();
+      if (response && response.data && response.data.success && Array.isArray(response.data.data)) {
+        setPendingCount(response.data.data.length);
+      }
+    } catch (error) {
+      // Silently fail
+      console.debug('Failed to load pending count:', error);
     }
   };
 
@@ -82,6 +120,23 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
           <div className="flex items-center gap-4">
+            {hasRole(['admin']) && (
+              <a 
+                href="/approvals" 
+                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg hover:shadow-md transition-all hover:border-amber-400"
+                title="View pending registration approvals"
+              >
+                <span className="text-lg">📋</span>
+                <span className="text-sm font-semibold text-amber-900">
+                  {pendingCount > 0 ? `${pendingCount} Pending` : 'Approvals'}
+                </span>
+                {pendingCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gradient-to-br from-amber-500 to-orange-600 rounded-full animate-pulse">
+                    {pendingCount}
+                  </span>
+                )}
+              </a>
+            )}
             <span className="text-sm text-slate-600">{user?.full_name}</span>
             <button onClick={handleLogout} className="btn-secondary text-sm">
               Logout
@@ -142,6 +197,56 @@ const Dashboard = () => {
             )}
           </Card>
         </div>
+
+        {/* Admin: Registration Approvals Section */}
+        {hasRole(['admin']) && (
+          <Card className="mb-8 border-l-4 border-cyan-600">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📋</span>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Pending Registration Approvals</h3>
+                  <p className="text-sm text-slate-600">New user registration requests</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => navigate('/approvals')} 
+                className="btn-primary text-sm"
+              >
+                View All →
+              </button>
+            </div>
+
+            {pendingRegistrations.length > 0 ? (
+              <div className="space-y-4">
+                {pendingRegistrations.map((reg) => (
+                  <div key={reg.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-cyan-400 transition-colors">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {reg.user_type === 'staff' ? '👤' : reg.user_type === 'technician' ? '🔧' : '🌐'}
+                        </span>
+                        <h4 className="font-semibold text-slate-900">{reg.first_name} {reg.last_name}</h4>
+                        <Badge variant="warning" size="sm">{
+                          reg.user_type === 'staff' ? 'Staff' : 
+                          reg.user_type === 'technician' ? 'Technician' : 'Other'
+                        }</Badge>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1">
+                        {reg.department_name || reg.company_shop_name || 'N/A'} • {reg.email}
+                      </p>
+                    </div>
+                    <div className="text-xs text-slate-500 text-right mr-4">
+                      {formatDate(reg.created_at)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon="✅" title="All Approved!" message="No pending registrations to review" />
+            )}
+          </Card>
+        )}
 
         {/* Recent Repairs */}
         <Card>
