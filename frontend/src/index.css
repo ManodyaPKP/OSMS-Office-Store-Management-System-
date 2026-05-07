@@ -97,3 +97,59 @@
     @apply space-y-2;
   }
 }
+
+/* Dark mode styles */
+.dark {
+  --tw-bg-opacity: 1;
+  background-color: rgb(15 23 42 / var(--tw-bg-opacity, 1));
+}
+
+.dark body {
+  background-color: rgb(15 23 42);
+  color: rgb(226 232 240);
+}
+
+.dark .bg-white {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .bg-slate-50 {
+  background-color: rgb(15 23 42) !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: rgb(30 41 59) !important;
+}
+
+.dark .border-slate-200 {
+  border-color: rgb(51 65 85) !important;
+}
+
+.dark .border-slate-300 {
+  border-color: rgb(71 85 105) !important;
+}
+
+.dark .text-slate-900 {
+  color: rgb(241 245 249) !important;
+}
+
+.dark .text-slate-700 {
+  color: rgb(203 213 225) !important;
+}
+
+.dark .text-slate-600 {
+  color: rgb(148 163 184) !important;
+}
+
+.dark .text-slate-500 {
+  color: rgb(100 116 139) !important;
+}
+
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.dark .card {
+  background-color: rgb(30 41 59);
+  border-color: rgb(51 65 85);
+}

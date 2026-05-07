@@ -253,6 +253,138 @@ router.put('/profile/update', verifyToken, async (req, res) => {
   }
 });
 
+// GET user theme preference
+router.get('/theme', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Check if user_settings table exists and get theme
+    let result = await executeQuery(
+      'SELECT theme FROM user_settings WHERE user_id = ?',
+      [userId]
+    );
+    
+    if (result.length === 0) {
+      // Create default settings
+      await executeQuery(
+        'INSERT INTO user_settings (user_id, theme) VALUES (?, ?)',
+        [userId, 'light']
+      );
+      result = [{ theme: 'light' }];
+    }
+    
+    res.json({
+      success: true,
+      data: { theme: result[0].theme }
+    });
+  } catch (error) {
+    console.error('Error fetching theme:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPDATE user theme preference
+router.put('/theme', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { theme } = req.body;
+    
+    if (!['light', 'dark'].includes(theme)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Theme must be "light" or "dark"'
+      });
+    }
+    
+    await executeQuery(
+      `INSERT INTO user_settings (user_id, theme) 
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE theme = VALUES(theme)`,
+      [userId, theme]
+    );
+    
+    res.json({
+      success: true,
+      message: 'Theme updated successfully',
+      data: { theme }
+    });
+  } catch (error) {
+    console.error('Error updating theme:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE account - Self-service account deletion
+router.delete('/account', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { confirmPassword } = req.body;
+    
+    if (!confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password confirmation is required to delete account'
+      });
+    }
+    
+    // Verify password
+    const users = await executeQuery(
+      'SELECT password_hash FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    const isPasswordValid = await bcrypt.compare(confirmPassword, users[0].password_hash);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid password'
+      });
+    }
+    
+    // Check if user is admin (prevent deletion of last admin)
+    const adminCount = await executeQuery(
+      'SELECT COUNT(*) as count FROM users WHERE role = "admin" AND is_active = true'
+    );
+    
+    if (users[0].role === 'admin' && adminCount[0].count <= 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete the only admin account. Please assign admin role to another user first.'
+      });
+    }
+    
+    // Soft delete - deactivate account instead of hard delete
+    await executeQuery(
+      'UPDATE users SET is_active = false, username = CONCAT(username, "_deleted_", id), email = CONCAT(email, "_deleted") WHERE id = ?',
+      [userId]
+    );
+    
+    // Optional: Move data to deleted_users table for audit
+    await executeQuery(
+      `INSERT INTO pending_users (username, email, first_name, last_name, user_type, status, approval_notes)
+       SELECT username, email, full_name, '', 'staff', 'deleted', 'Account self-deleted'
+       FROM users WHERE id = ?`,
+      [userId]
+    );
+    
+    res.json({
+      success: true,
+      message: 'Your account has been deactivated. We are sad to see you go!'
+    });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // UPLOAD profile picture
 router.post('/profile/upload-picture', verifyToken, upload.single('profile_picture'), async (req, res) => {
   try {
@@ -770,6 +902,7 @@ router.post('/registrations/:id/reject', verifyToken, checkRole(['admin']), asyn
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+  
 });
 
 export default router;

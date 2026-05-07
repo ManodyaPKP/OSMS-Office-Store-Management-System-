@@ -23,9 +23,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // On the login page, allow 401/403 errors to propagate so the page can handle them
     if (error.response?.status === 401 || error.response?.status === 403) {
-      // Only redirect if not on the login page
       if (window.location.pathname !== '/login') {
         localStorage.removeItem('authToken');
         localStorage.removeItem('user');
@@ -53,7 +51,6 @@ export const authAPI = {
       new_password: newPassword
     }),
 
-  // Admin: Manage pending registrations
   getPendingRegistrations: () =>
     api.get('/users/registrations/pending'),
 
@@ -170,6 +167,46 @@ export const userAPI = {
   
   deactivate: (id) =>
     api.put(`/users/${id}/deactivate`)
+};
+
+// ===== Profile APIs =====
+export const profileAPI = {
+  getProfile: () =>
+    api.get('/users/profile/me'),
+  
+  updateProfile: (data) =>
+    api.put('/users/profile/update', data),
+  
+  uploadPicture: (file) => {
+    const formData = new FormData();
+    formData.append('profile_picture', file);
+    return api.post('/users/profile/upload-picture', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
+  
+  deletePicture: () =>
+    api.delete('/users/profile/picture'),
+  
+  changePassword: (data) =>
+    api.post('/users/profile/change-password', data),
+  
+  getSettings: () =>
+    api.get('/users/settings'),
+  
+  updateSettings: (data) =>
+    api.put('/users/settings', data),
+  
+  getTheme: () =>
+    api.get('/users/theme'),
+  
+  updateTheme: (theme) =>
+    api.put('/users/theme', { theme }),
+  
+  deleteAccount: (confirmPassword) =>
+    api.delete('/users/account', { data: { confirmPassword } })
 };
 
 export default api;

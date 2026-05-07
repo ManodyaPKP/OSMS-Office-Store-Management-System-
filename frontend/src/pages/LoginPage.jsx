@@ -3,13 +3,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { getErrorMessage } from '../utils/helpers';
-import { Button, Input, Alert } from '../components/UI';
+import sideImage from '../assets/login01.gif'; // You 
+import logoImage from '../assets/logo1.png'; // can r
+// eplace this 
+// with an actual image path or URL
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
-  const [errorType, setErrorType] = useState(''); // 'rejected', 'pending', 'approved_not_active', or empty
+  const [errorType, setErrorType] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -29,34 +33,33 @@ const LoginPage = () => {
       
       if (response.data.success) {
         login(response.data.user, response.data.token);
+        
+        // Save remember me preference
+        if (rememberMe) {
+          localStorage.setItem('rememberedUsername', username);
+        } else {
+          localStorage.removeItem('rememberedUsername');
+        }
+        
         navigate('/');
       }
     } catch (err) {
-      console.error('❌ Login error:');
-      console.error('  Status:', err.response?.status);
-      console.error('  Data:', err.response?.data);
-      console.error('  Full error:', err);
+      console.error('❌ Login error:', err);
 
-      // Check if the error response contains registration status info
       if (err.response && err.response.data) {
         const errorData = err.response.data;
-        console.log('📋 Error data status field:', errorData.status);
         
         if (errorData.status === 'rejected') {
-          console.log('  ➜ Setting errorType to "rejected"');
           setErrorType('rejected');
           setError(errorData.message);
           setRejectionReason(errorData.reason || 'No reason provided');
         } else if (errorData.status === 'pending') {
-          console.log('  ➜ Setting errorType to "pending"');
           setErrorType('pending');
           setError(errorData.message);
         } else if (errorData.status === 'approved_not_active') {
-          console.log('  ➜ Setting errorType to "approved_not_active"');
           setErrorType('approved_not_active');
           setError(errorData.message);
         } else {
-          console.log('  ➜ No registration status, using generic error message');
           setErrorType('');
           setError(getErrorMessage(err));
         }
@@ -69,144 +72,211 @@ const LoginPage = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-500 to-primary-700 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-white opacity-10 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full translate-x-1/2 translate-y-1/2"></div>
-      </div>
+  // Load remembered username on component mount
+  React.useEffect(() => {
+    const remembered = localStorage.getItem('rememberedUsername');
+    if (remembered) {
+      setUsername(remembered);
+      setRememberMe(true);
+    }
+  }, []);
 
-      {/* Login Card */}
-      <div className="relative w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-primary px-8 py-12 text-center">
-            <div className="text-5xl mb-4">⚙️</div>
-            <h1 className="text-3xl font-bold text-black">Store Management</h1>
-            <p className="text-sm font-bold text-black">System Administration Portal</p>
+  return (
+    <div className="min-h-screen flex">
+      {/* Left Side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-white dark:bg-slate-900">
+        <div className="max-w-md w-full space-y-8">
+          {/* Logo/Brand - Replace the gear icon with your logo */}
+          <div className="text-center">
+            <div className="flex justify-center mb-4">
+              {/* Replace this div with your logo image */}
+              <img 
+                src={logoImage}
+                alt="Department of Government Information"
+                className="w-70 h-auto object-contain" // Adjust size as needed
+              />
+            </div>
+            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
+              Welcome back
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+              Please enter your details to sign in
+            </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
-            {/* Registration Rejected - Red Alert */}
-            {errorType === 'rejected' && (
-              <div className="p-4 bg-red-50 border-l-4 border-red-600 rounded">
-                <div className="flex gap-3">
-                  <div className="text-2xl">❌</div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-red-900 mb-1">{error}</h4>
-                    <p className="text-sm text-red-800 mb-2"><strong>Reason:</strong></p>
-                    <p className="text-sm text-red-700 bg-red-100 p-2 rounded italic">{rejectionReason}</p>
-                  </div>
+          {/* Error Messages */}
+          {errorType === 'rejected' && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg">
+              <div className="flex gap-3">
+                <div className="text-xl">❌</div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-red-800 dark:text-red-300 mb-1">{error}</h4>
+                  <p className="text-sm text-red-700 dark:text-red-400 mb-2">
+                    <strong>Reason:</strong>
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-300 bg-red-100 dark:bg-red-900/30 p-2 rounded italic">
+                    {rejectionReason}
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Registration Pending - Yellow Alert */}
-            {errorType === 'pending' && (
-              <div className="p-4 bg-amber-50 border-l-4 border-amber-600 rounded">
-                <div className="flex gap-3">
-                  <div className="text-2xl">⏳</div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-amber-900 mb-1">{error}</h4>
-                    <p className="text-sm text-amber-800">Your registration is awaiting administrator review. You'll be able to log in once approved.</p>
-                  </div>
+          {errorType === 'pending' && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 rounded-lg">
+              <div className="flex gap-3">
+                <div className="text-xl">⏳</div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-amber-800 dark:text-amber-300 mb-1">{error}</h4>
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    Your registration is awaiting administrator review. You'll be able to log in once approved.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Account Not Active - Orange Alert */}
-            {errorType === 'approved_not_active' && (
-              <div className="p-4 bg-orange-50 border-l-4 border-orange-600 rounded">
-                <div className="flex gap-3">
-                  <div className="text-2xl">⚠️</div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-orange-900 mb-1">{error}</h4>
-                    <p className="text-sm text-orange-800">Please contact your system administrator for assistance.</p>
-                  </div>
+          {errorType === 'approved_not_active' && (
+            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500 rounded-lg">
+              <div className="flex gap-3">
+                <div className="text-xl">⚠️</div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-orange-800 dark:text-orange-300 mb-1">{error}</h4>
+                  <p className="text-sm text-orange-700 dark:text-orange-400">
+                    Please contact your system administrator for assistance.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Default Error - Red Alert */}
-            {error && !errorType && (
-              <Alert variant="danger" icon="⚠️">
-                {error}
-              </Alert>
-            )}
+          {error && !errorType && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg">
+              <div className="flex gap-3">
+                <div className="text-xl">⚠️</div>
+                <div className="flex-1">
+                  <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
-            <Input
-              label="Username"
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
-              required
-            />
+          {/* Login Form */}
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  placeholder="Enter your username"
+                  disabled={loading}
+                />
+              </div>
 
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  placeholder="Enter your password"
+                  disabled={loading}
+                />
+              </div>
+            </div>
 
-            <Button
+            {/* Remember Me & Forgot Password */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-cyan-600 border-slate-300 rounded focus:ring-cyan-500"
+                />
+                <span className="ml-2 text-sm text-slate-600 dark:text-slate-400">
+                  Remember me for 30 days
+                </span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => alert('Password reset functionality coming soon!')}
+                className="text-sm font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300 transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            {/* Submit Button */}
+            <button
               type="submit"
-              variant="primary"
-              size="lg"
               disabled={loading}
-              className="w-full"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                   Signing in...
                 </span>
               ) : (
-                '🔐 Sign In'
+                'Log in'
               )}
-            </Button>
+            </button>
+
+            {/* Sign Up Link */}
+            <div className="text-center">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Don't have an account?{' '}
+                <Link to="/register" className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300 transition-colors">
+                  Sign up
+                </Link>
+              </p>
+            </div>
           </form>
 
-          {/* Footer */}
-          <div className="bg-slate-50 px-8 py-4 border-t border-slate-200 text-center">
-            <p className="text-sm text-slate-600 mb-3">
-              Department Of Government Information 
+          {/* Demo Credentials Hint */}
+          <div className="mt-6 p-4  rounded-xl">
+            <p className="text-xl text-slate-500 dark:text-slate-400 text-center">
+              <strong>⚙️</strong>
             </p>
-            <p className="text-sm mb-3">
-              Don't have an account?{' '}
-              <Link to="/register" className="font-semibold text-cyan-600 hover:text-cyan-700">
-                Register here
-              </Link>
-            </p>
-            {errorType === 'rejected' && (
-              <p className="text-xs text-red-600 border-t pt-3 mt-3">
-                If you believe this rejection is in error, you may{' '}
-                <Link to="/register" className="font-semibold hover:text-red-700 underline">
-                  submit a new registration
-                </Link>
-                {' '}or contact your administrator.
-              </p>
-            )}
           </div>
         </div>
-
-        {/* Info Box */}
-        <div className="mt-6 bg-white bg-opacity-20 backdrop-blur rounded-xl p-4 text-white text-sm">
-          <p className="flex items-start gap-2">
-            <span className="text-lg">ℹ️</span>
-            <span>Use your administrative credentials to access the store management system.</span>
-          </p>
-        </div>
       </div>
+
+      {/* Right Side - Image/Illustration */}
+      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-cyan-600 to-blue-700">
+        <div className="absolute inset-0 bg-white/20 z-10"></div>
+         {/* Background Image */}
+        <img 
+          src="/src/assets/login01.gif"
+          alt="Office Management"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        
+       
+  </div>
     </div>
-  );
+ );
 };
 
 export default LoginPage;

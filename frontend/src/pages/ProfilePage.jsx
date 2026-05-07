@@ -2,12 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { useTheme } from '../context/ThemeContext';
+import DeleteAccountModal from '../components/DeleteAccountModal';
 
 const ProfilePage = () => {
-  const { user, updateUser, logout } = useAuth();  // ← Added updateUser here
+  const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-
+  const { theme, toggleTheme } = useTheme();
+  
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -155,7 +159,6 @@ const ProfilePage = () => {
         setMessage('Profile updated successfully!');
         setEditMode(false);
         
-        // IMPORTANT: Update the auth context so navbar shows new name immediately
         if (updateUser && response.data.data) {
           updateUser({
             username: response.data.data.username,
@@ -163,7 +166,6 @@ const ProfilePage = () => {
           });
         }
         
-        // Reload profile to get fresh data
         loadProfile();
         setTimeout(() => setMessage(''), 3000);
       }
@@ -229,18 +231,18 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+      <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40 dark:bg-slate-800 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
             >
               ← Dashboard
             </button>
-            <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Profile</h1>
           </div>
           <button 
             onClick={logout} 
@@ -255,19 +257,19 @@ const ProfilePage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Alert Messages */}
         {message && (
-          <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-600 rounded-lg">
+          <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-600 rounded-lg dark:bg-green-900/20 dark:border-green-500">
             <div className="flex items-center justify-between">
-              <span className="text-green-800">✅ {message}</span>
-              <button onClick={() => setMessage('')} className="text-green-800 text-xl">&times;</button>
+              <span className="text-green-800 dark:text-green-300">✅ {message}</span>
+              <button onClick={() => setMessage('')} className="text-green-800 dark:text-green-300 text-xl">&times;</button>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg">
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg dark:bg-red-900/20 dark:border-red-500">
             <div className="flex items-center justify-between">
-              <span className="text-red-800">❌ {error}</span>
-              <button onClick={() => setError('')} className="text-red-800 text-xl">&times;</button>
+              <span className="text-red-800 dark:text-red-300">❌ {error}</span>
+              <button onClick={() => setError('')} className="text-red-800 dark:text-red-300 text-xl">&times;</button>
             </div>
           </div>
         )}
@@ -275,12 +277,12 @@ const ProfilePage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Profile Picture Card - Left Column */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 dark:bg-slate-800 dark:border-slate-700">
               <div className="flex flex-col items-center">
                 {/* User Name - Displayed prominently above picture */}
                 <div className="text-center mb-4">
-                  <h2 className="text-xl font-bold text-slate-900">{profile?.full_name || profile?.username}</h2>
-                  <p className="text-sm text-slate-500 mt-1">@{profile?.username}</p>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">{profile?.full_name || profile?.username}</h2>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">@{profile?.username}</p>
                 </div>
 
                 {/* Profile Picture */}
@@ -308,7 +310,7 @@ const ProfilePage = () => {
 
                 {/* Role Badge */}
                 <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-sm font-semibold capitalize">
+                  <span className="inline-block px-3 py-1 bg-cyan-100 text-cyan-800 rounded-full text-sm font-semibold capitalize dark:bg-cyan-900 dark:text-cyan-200">
                     {profile?.role || 'User'}
                   </span>
                 </div>
@@ -341,7 +343,7 @@ const ProfilePage = () => {
                   )}
                 </div>
 
-                <p className="text-xs text-slate-500 mt-4 text-center">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 text-center">
                   Formats: JPG, PNG, GIF, WebP<br />
                   Max size: 5MB
                 </p>
@@ -351,9 +353,9 @@ const ProfilePage = () => {
 
           {/* Profile Information Card - Right Column */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 dark:bg-slate-800 dark:border-slate-700">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-slate-900">Personal Information</h2>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Personal Information</h2>
                 {!editMode && (
                   <button
                     onClick={() => setEditMode(true)}
@@ -365,90 +367,88 @@ const ProfilePage = () => {
               </div>
 
               {!editMode ? (
-                /* View Mode */
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Username</label>
-                      <p className="text-slate-900 font-mono">{profile?.username}</p>
+                      <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Username</label>
+                      <p className="text-slate-900 dark:text-white font-mono">{profile?.username}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Full Name</label>
-                      <p className="text-slate-900">{profile?.full_name}</p>
+                      <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Full Name</label>
+                      <p className="text-slate-900 dark:text-white">{profile?.full_name}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
-                      <p className="text-slate-900">{profile?.email}</p>
+                      <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Email</label>
+                      <p className="text-slate-900 dark:text-white">{profile?.email}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Department</label>
-                      <p className="text-slate-900">{profile?.department_name || 'Not assigned'}</p>
+                      <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Department</label>
+                      <p className="text-slate-900 dark:text-white">{profile?.department_name || 'Not assigned'}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Designation</label>
-                      <p className="text-slate-900">{profile?.designation || 'Not specified'}</p>
+                      <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Designation</label>
+                      <p className="text-slate-900 dark:text-white">{profile?.designation || 'Not specified'}</p>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">Bio</label>
-                    <p className="text-slate-900">{profile?.bio || 'No bio added yet'}</p>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Bio</label>
+                    <p className="text-slate-900 dark:text-white">{profile?.bio || 'No bio added yet'}</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1">Phone</label>
-                    <p className="text-slate-900">{profile?.phone || 'Not provided'}</p>
+                    <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Phone</label>
+                    <p className="text-slate-900 dark:text-white">{profile?.phone || 'Not provided'}</p>
                   </div>
                 </div>
               ) : (
-                /* Edit Mode */
                 <form onSubmit={(e) => { e.preventDefault(); saveProfile(); }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Username *</label>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username *</label>
                       <input
                         type="text"
                         name="username"
                         value={formData.username}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name *</label>
                       <input
                         type="text"
                         name="full_name"
                         value={formData.full_name}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Bio</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bio</label>
                     <textarea
                       name="bio"
                       value={formData.bio}
                       onChange={handleInputChange}
                       rows="3"
                       placeholder="Tell us about yourself..."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone</label>
                     <input
                       type="tel"
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
                       placeholder="+1 234 567 8900"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     />
                   </div>
 
@@ -480,9 +480,36 @@ const ProfilePage = () => {
               )}
             </div>
 
+            {/* Theme Preference Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6 dark:bg-slate-800 dark:border-slate-700">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Appearance</h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-900 dark:text-white font-medium">Theme Preference</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Choose between light and dark mode</p>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:shadow-lg transition-all font-medium flex items-center gap-2"
+                >
+                  {theme === 'light' ? (
+                    <>
+                      <span className="text-lg">🌙</span>
+                      Switch to Dark Mode
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-lg">☀️</span>
+                      Switch to Light Mode
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* Password Change Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6">
-              <h2 className="text-lg font-bold text-slate-900 mb-4">Security</h2>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6 dark:bg-slate-800 dark:border-slate-700">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Security</h2>
               
               {!showPasswordForm ? (
                 <button
@@ -494,39 +521,39 @@ const ProfilePage = () => {
               ) : (
                 <form onSubmit={(e) => { e.preventDefault(); changePassword(); }} className="space-y-4 max-w-md">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Current Password</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current Password</label>
                     <input
                       type="password"
                       name="currentPassword"
                       value={passwordData.currentPassword}
                       onChange={handlePasswordChange}
                       required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
                     <input
                       type="password"
                       name="newPassword"
                       value={passwordData.newPassword}
                       onChange={handlePasswordChange}
                       required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     />
-                    <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Minimum 6 characters</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm New Password</label>
                     <input
                       type="password"
                       name="confirmPassword"
                       value={passwordData.confirmPassword}
                       onChange={handlePasswordChange}
                       required
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-600 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
                     />
                   </div>
 
@@ -556,9 +583,34 @@ const ProfilePage = () => {
                 </form>
               )}
             </div>
+
+            {/* Delete Account Card - Danger Zone */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mt-6 dark:bg-slate-800 dark:border-slate-700">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Danger Zone</h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-900 dark:text-white font-medium text-red-600 dark:text-red-400">Delete Account</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    Permanently delete your account and all associated data
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  🗑️ Delete Account
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal 
+        isOpen={showDeleteModal} 
+        onClose={() => setShowDeleteModal(false)} 
+      />
     </div>
   );
 };
