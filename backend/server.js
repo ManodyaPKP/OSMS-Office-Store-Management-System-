@@ -7,6 +7,8 @@ import repairRoutes from './src/routes/repairs.js';
 import inspectionRoutes from './src/routes/inspections.js';
 import approvalRoutes from './src/routes/approvals.js';
 import userRoutes from './src/routes/users.js';
+import profileRoutes from './src/routes/profiles.js';
+import messageRoutes from './src/routes/messages.js';
 
 dotenv.config();
 
@@ -60,6 +62,8 @@ app.use('/api/repairs', repairRoutes);
 app.use('/api/inspections', inspectionRoutes);
 app.use('/api/approvals', approvalRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/messages', messageRoutes);
 
 // 404 handler
 app.use((req, res) => {

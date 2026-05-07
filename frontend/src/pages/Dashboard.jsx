@@ -18,9 +18,11 @@ const Dashboard = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [profilePictureUrl, setProfilePictureUrl] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
+    loadProfilePicture();
     
     // Load pending count for admins
     if (hasRole(['admin'])) {
@@ -70,6 +72,27 @@ const Dashboard = () => {
     }
   };
 
+  const loadProfilePicture = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userId = user?.id;
+      if (!userId) return;
+      
+      const response = await fetch(`http://localhost:5000/api/users/profile/picture/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        setProfilePictureUrl(url);
+      }
+    } catch (err) {
+      console.error('Error loading profile picture:', err);
+    }
+  };
+
   const loadPendingCount = async () => {
     try {
       const response = await authAPI.getPendingRegistrations();
@@ -77,7 +100,6 @@ const Dashboard = () => {
         setPendingCount(response.data.data.length);
       }
     } catch (error) {
-      // Silently fail
       console.debug('Failed to load pending count:', error);
     }
   };
@@ -119,7 +141,27 @@ const Dashboard = () => {
       <div className="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Profile Button - Shows User's Name instead of "Profile" */}
+            <button 
+              onClick={() => navigate('/profile')} 
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-300 rounded-lg hover:shadow-md transition-all hover:border-cyan-400"
+              title="My Profile"
+            >
+              {profilePictureUrl ? (
+                <img 
+                  src={profilePictureUrl} 
+                  alt="Profile" 
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <span className="text-lg">👤</span>
+              )}
+              <span className="text-sm font-semibold text-cyan-900">
+                {user?.full_name || user?.username || 'User'}
+              </span>
+            </button>
+
             {hasRole(['admin']) && (
               <a 
                 href="/approvals" 
@@ -137,8 +179,8 @@ const Dashboard = () => {
                 )}
               </a>
             )}
-            <span className="text-sm text-slate-600">{user?.full_name}</span>
-            <button onClick={handleLogout} className="btn-secondary text-sm">
+            
+            <button onClick={handleLogout} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">
               Logout
             </button>
           </div>

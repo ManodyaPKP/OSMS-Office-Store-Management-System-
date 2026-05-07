@@ -8,7 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if token exists on mount
     if (token) {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
@@ -32,7 +31,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
+  const updateUser = (updatedUserData) => {
+    setUser(prevUser => {
+      const newUser = { ...prevUser, ...updatedUserData };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
+    });
+  };
+
   const isAuthenticated = !!token;
+  
   const hasRole = (requiredRoles) => {
     if (!user) return false;
     return requiredRoles.includes(user.role);
@@ -45,6 +53,7 @@ export const AuthProvider = ({ children }) => {
       loading,
       login,
       logout,
+      updateUser,
       isAuthenticated,
       hasRole
     }}>

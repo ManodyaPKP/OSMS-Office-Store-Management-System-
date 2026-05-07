@@ -8,6 +8,8 @@ import DepartmentsPage from './pages/DepartmentsPage';
 import AssetsPage from './pages/AssetsPage';
 import RepairsPage from './pages/RepairsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
+import ProfilePage from './pages/ProfilePage';
+import MessagesPage from './pages/MessagesPage';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -68,6 +70,24 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ApprovalsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <MessagesPage />
           </ProtectedRoute>
         }
       />

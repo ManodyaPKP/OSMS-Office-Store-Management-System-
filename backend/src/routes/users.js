@@ -1,12 +1,34 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import path from 'path';
 import { executeQuery } from '../database.js';
 import { verifyToken, checkRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+// Configure multer for memory storage (for profile pictures)
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+// ============================================
 // LOGIN endpoint
+// ============================================
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -37,7 +59,6 @@ router.post('/login', async (req, res) => {
         const pendingUser = pendingUsers[0];
         console.log(`  Status: ${pendingUser.status}, Notes: ${pendingUser.approval_notes}`);
 
-        // Registration has been rejected
         if (pendingUser.status === 'rejected') {
           console.log('  → Returning 403 REJECTED response');
           return res.status(403).json({
@@ -48,7 +69,6 @@ router.post('/login', async (req, res) => {
           });
         }
 
-        // Registration is still pending
         if (pendingUser.status === 'pending') {
           console.log('  → Returning 403 PENDING response');
           return res.status(403).json({
@@ -58,7 +78,6 @@ router.post('/login', async (req, res) => {
           });
         }
 
-        // Registration was approved but user not found in users table (shouldn't happen)
         if (pendingUser.status === 'approved') {
           console.log('  → Returning 403 APPROVED_NOT_ACTIVE response');
           return res.status(403).json({
@@ -69,7 +88,6 @@ router.post('/login', async (req, res) => {
         }
       }
 
-      // User not found at all
       console.log('  → Returning 401 USER_NOT_FOUND');
       return res.status(401).json({
         success: false,
@@ -117,7 +135,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// GET current user profile
+// GET current user profile (simple version)
 router.get('/profile', verifyToken, async (req, res) => {
   try {
     const users = await executeQuery(
@@ -134,6 +152,323 @@ router.get('/profile', verifyToken, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+// ============================================
+// PROFILE MANAGEMENT ENDPOINTS (NEW)
+// ============================================
+
+// GET complete user profile
+router.get('/profile/me', verifyToken, async (req, res) => {
+  try {
+    const users = await executeQuery(
+      `SELECT u.id, u.username, u.email, u.full_name, u.designation, u.role, u.dept_id, 
+              u.bio, u.phone, u.profile_picture_type,
+              d.name as department_name
+       FROM users u
+       LEFT JOIN departments d ON u.dept_id = d.id
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      data: {
+        ...users[0],
+        hasProfilePicture: !!users[0].profile_picture_type
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching profile:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPDATE profile (username, full_name, bio, phone)
+router.put('/profile/update', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { username, full_name, bio, phone } = req.body;
+
+    // Check if username is unique (if changed)
+    if (username) {
+      const existingUser = await executeQuery(
+        'SELECT id FROM users WHERE username = ? AND id != ?',
+        [username, userId]
+      );
+      if (existingUser.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username already taken'
+        });
+      }
+    }
+
+    // Update user table
+    const updateFields = [];
+    const updateValues = [];
+
+    if (username) {
+      updateFields.push('username = ?');
+      updateValues.push(username);
+    }
+    if (full_name) {
+      updateFields.push('full_name = ?');
+      updateValues.push(full_name);
+    }
+    if (bio !== undefined) {
+      updateFields.push('bio = ?');
+      updateValues.push(bio);
+    }
+    if (phone !== undefined) {
+      updateFields.push('phone = ?');
+      updateValues.push(phone);
+    }
+
+    if (updateFields.length > 0) {
+      updateValues.push(userId);
+      await executeQuery(
+        `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues
+      );
+    }
+
+    // Get updated user data
+    const updatedUser = await executeQuery(
+      'SELECT id, username, full_name, email, bio, phone, role FROM users WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedUser[0]
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPLOAD profile picture
+router.post('/profile/upload-picture', verifyToken, upload.single('profile_picture'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Validate file size (5MB)
+    if (req.file.size > 5 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        message: 'File size exceeds 5MB limit'
+      });
+    }
+
+    // Update user with profile picture
+    await executeQuery(
+      'UPDATE users SET profile_picture = ?, profile_picture_type = ? WHERE id = ?',
+      [req.file.buffer, req.file.mimetype, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile picture uploaded successfully'
+    });
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET profile picture
+router.get('/profile/picture/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const users = await executeQuery(
+      'SELECT profile_picture, profile_picture_type FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0 || !users[0].profile_picture) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile picture not found'
+      });
+    }
+
+    const { profile_picture, profile_picture_type } = users[0];
+    
+    res.setHeader('Content-Type', profile_picture_type || 'image/jpeg');
+    res.send(profile_picture);
+  } catch (error) {
+    console.error('Error fetching profile picture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch profile picture'
+    });
+  }
+});
+
+// DELETE profile picture
+router.delete('/profile/picture', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await executeQuery(
+      'UPDATE users SET profile_picture = NULL, profile_picture_type = NULL WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile picture deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting profile picture:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// CHANGE password
+router.post('/profile/change-password', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'All password fields are required'
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New passwords do not match'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Get current user password
+    const users = await executeQuery(
+      'SELECT password_hash FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, users[0].password_hash);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await executeQuery(
+      'UPDATE users SET password_hash = ? WHERE id = ?',
+      [newPasswordHash, userId]
+    );
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET user settings
+router.get('/settings', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    let settings = await executeQuery(
+      'SELECT * FROM user_settings WHERE user_id = ?',
+      [userId]
+    );
+
+    if (settings.length === 0) {
+      // Create default settings
+      await executeQuery(
+        'INSERT INTO user_settings (user_id) VALUES (?)',
+        [userId]
+      );
+      settings = await executeQuery(
+        'SELECT * FROM user_settings WHERE user_id = ?',
+        [userId]
+      );
+    }
+
+    res.json({
+      success: true,
+      data: settings[0]
+    });
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// UPDATE user settings
+router.put('/settings', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { theme, notifications, email_notifications } = req.body;
+
+    await executeQuery(
+      `INSERT INTO user_settings (user_id, theme, notifications, email_notifications) 
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE 
+       theme = VALUES(theme), 
+       notifications = VALUES(notifications), 
+       email_notifications = VALUES(email_notifications)`,
+      [userId, theme || 'light', notifications !== undefined ? notifications : true, email_notifications !== undefined ? email_notifications : true]
+    );
+
+    res.json({
+      success: true,
+      message: 'Settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating settings:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============================================
+// USER MANAGEMENT ENDPOINTS (Admin)
+// ============================================
 
 // GET all users (Admin only)
 router.get('/', verifyToken, checkRole(['admin']), async (req, res) => {
@@ -204,7 +539,7 @@ router.put('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// CHANGE password
+// CHANGE password (self)
 router.post('/:id/change-password', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -255,6 +590,26 @@ router.put('/:id/deactivate', verifyToken, checkRole(['admin']), async (req, res
   }
 });
 
+// GET all admins
+router.get('/admins', verifyToken, async (req, res) => {
+  try {
+    const admins = await executeQuery(
+      'SELECT id, full_name, username, email FROM users WHERE role = "admin" AND is_active = true ORDER BY full_name'
+    );
+
+    res.json({
+      success: true,
+      data: admins
+    });
+  } catch (error) {
+    console.error('Error fetching admins:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admins'
+    });
+  }
+});
+
 // ============================================
 // REGISTRATION ENDPOINTS
 // ============================================
@@ -264,17 +619,13 @@ router.post('/register/new', async (req, res) => {
   try {
     const { 
       first_name, last_name, email, mobile_number, user_type,
-      // Staff fields
       department_name, section_name, unit_name, position,
-      // Technician fields
       company_shop_name, company_phone, address,
-      // Other fields
       id_number, registration_note, username, password
     } = req.body;
 
     console.log(`\n📝 REGISTRATION ATTEMPT: username="${username}", user_type="${user_type}"`);
 
-    // Validation
     if (!first_name || !last_name || !mobile_number || !user_type) {
       return res.status(400).json({
         success: false,
@@ -289,7 +640,6 @@ router.post('/register/new', async (req, res) => {
       });
     }
 
-    // Validate user type specific fields
     if (user_type === 'other') {
       if (!id_number || !email || !registration_note) {
         return res.status(400).json({
@@ -299,10 +649,8 @@ router.post('/register/new', async (req, res) => {
       }
     }
 
-    // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
-    // Insert into pending_users
     const result = await executeQuery(
       `INSERT INTO pending_users 
        (username, email, password_hash, first_name, last_name, mobile_number, user_type,
@@ -326,7 +674,7 @@ router.post('/register/new', async (req, res) => {
       registration_id: result.insertId
     });
   } catch (error) {
-    console.error(`❌ Registration error for username="${username}":`, error.message);
+    console.error(`❌ Registration error for username="${req.body.username}":`, error.message);
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({
         success: false,
@@ -356,7 +704,6 @@ router.post('/registrations/:id/approve', verifyToken, checkRole(['admin']), asy
     const { id } = req.params;
     const { dept_id } = req.body;
 
-    // Get pending user
     const pending = await executeQuery(
       'SELECT * FROM pending_users WHERE id = ? AND status = "pending"',
       [id]
@@ -368,7 +715,6 @@ router.post('/registrations/:id/approve', verifyToken, checkRole(['admin']), asy
 
     const p = pending[0];
 
-    // Create active user account
     const result = await executeQuery(
       `INSERT INTO users (username, email, password_hash, full_name, designation, role, dept_id, is_active)
        VALUES (?, ?, ?, ?, ?, ?, ?, true)`,
@@ -383,7 +729,6 @@ router.post('/registrations/:id/approve', verifyToken, checkRole(['admin']), asy
       ]
     );
 
-    // Update pending registration status
     await executeQuery(
       `UPDATE pending_users SET status = 'approved', approved_by = ?, approval_date = NOW() 
        WHERE id = ?`,
@@ -415,7 +760,6 @@ router.post('/registrations/:id/reject', verifyToken, checkRole(['admin']), asyn
       return res.status(404).json({ success: false, message: 'Pending registration not found' });
     }
 
-    // Update pending registration status
     await executeQuery(
       `UPDATE pending_users SET status = 'rejected', approval_notes = ?, approved_by = ?, approval_date = NOW()
        WHERE id = ?`,

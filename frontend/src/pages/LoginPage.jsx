@@ -84,7 +84,7 @@ const LoginPage = () => {
           <div className="bg-gradient-primary px-8 py-12 text-center">
             <div className="text-5xl mb-4">⚙️</div>
             <h1 className="text-3xl font-bold text-black">Store Management</h1>
-            <p className="text-primary-100 text-sm text-black mt-2">System Administration Portal</p>
+            <p className="text-sm font-bold text-black">System Administration Portal</p>
           </div>
 
           {/* Form */}

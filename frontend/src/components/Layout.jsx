@@ -26,6 +26,18 @@ export const Sidebar = ({ isOpen }) => {
             <span>Repairs</span>
           </a>
 
+          <div className="my-4 border-t border-slate-700"></div>
+          
+          <a href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-slate-800 transition-colors">
+            <span className="text-lg">👤</span>
+            <span>My Profile</span>
+          </a>
+          
+          <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg text-white hover:bg-slate-800 transition-colors">
+            <span className="text-lg">💬</span>
+            <span>Messages</span>
+          </a>
+
           {hasRole(['admin']) && (
             <>
               <div className="my-4 border-t border-slate-700"></div>
@@ -44,22 +56,41 @@ export const Sidebar = ({ isOpen }) => {
 export const Navbar = ({ userName, onLogout }) => {
   const { hasRole } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   React.useEffect(() => {
-    if (hasRole(['admin'])) {
-      loadPendingCount();
-      // Refresh count every 15 seconds
-      const interval = setInterval(loadPendingCount, 15000);
-      return () => clearInterval(interval);
-    }
+    loadCounts();
+    // Refresh counts every 15 seconds
+    const interval = setInterval(loadCounts, 15000);
+    return () => clearInterval(interval);
   }, [hasRole]);
 
-  const loadPendingCount = async () => {
+  const loadCounts = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    if (hasRole(['admin'])) {
+      try {
+        const response = await fetch('http://localhost:5000/api/users/registrations/pending', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        if (data && data.success && Array.isArray(data.data)) {
+          setPendingCount(data.data.length);
+        }
+      } catch (error) {
+        console.debug('Failed to load pending count:', error);
+      }
+    }
+
+    // Load unread messages
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-      
-      const response = await fetch('http://localhost:5000/api/users/registrations/pending', {
+      const response = await fetch('http://localhost:5000/api/messages/unread/count', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -68,12 +99,11 @@ export const Navbar = ({ userName, onLogout }) => {
       });
       
       const data = await response.json();
-      if (data && data.success && Array.isArray(data.data)) {
-        setPendingCount(data.data.length);
+      if (data && data.success) {
+        setUnreadMessages(data.data.unreadCount || 0);
       }
     } catch (error) {
-      // Silently fail - just don't show count if error
-      console.debug('Failed to load pending count:', error);
+      console.debug('Failed to load unread messages:', error);
     }
   };
 
@@ -82,7 +112,25 @@ export const Navbar = ({ userName, onLogout }) => {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-slate-800">Welcome back!</h2>
         <div className="flex items-center gap-4">
-          {hasRole(['admin']) && (
+          {unreadMessages > 0 && (
+            <a 
+              href="/messages" 
+              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-300 rounded-lg hover:shadow-md transition-all hover:border-blue-400"
+              title="View messages"
+            >
+              <span className="text-lg">💬</span>
+              <span className="text-sm font-semibold text-blue-900">
+                {unreadMessages > 0 ? `${unreadMessages} New` : 'Messages'}
+              </span>
+              {unreadMessages > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full animate-pulse">
+                  {unreadMessages}
+                </span>
+              )}
+            </a>
+          )}
+
+          {hasRole(['admin']) && pendingCount > 0 && (
             <a 
               href="/approvals" 
               className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg hover:shadow-md transition-all hover:border-amber-400"
