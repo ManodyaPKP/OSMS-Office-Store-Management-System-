@@ -56,18 +56,17 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const toggleTheme = async () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    
-    // Save to server only if authenticated
-    if (isAuthenticated) {
-      try {
-        await profileAPI.updateTheme(newTheme);
-      } catch (error) {
-        console.error('Error saving theme:', error);
-      }
+  const newTheme = theme === 'light' ? 'dark' : 'light';
+  setTheme(newTheme);
+  
+  if (isAuthenticated) {
+    try {
+      await profileAPI.updateTheme(newTheme);
+    } catch (error) {
+      console.error('Error saving theme:', error);
     }
-  };
+  }
+};
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, loading }}>

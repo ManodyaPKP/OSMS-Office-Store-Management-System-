@@ -84,7 +84,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-white dark:bg-slate-900">
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-[#ffffff] dark:bg-slate-900">
         <div className="max-w-md w-full space-y-8">
           {/* Logo/Brand - Replace the gear icon with your logo */}
           <div className="text-center">
