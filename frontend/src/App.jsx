@@ -11,6 +11,9 @@ import RepairsPage from './pages/RepairsPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import ProfilePage from './pages/ProfilePage';
 import MessagesPage from './pages/MessagesPage';
+import RepairRequestPage from './pages/RepairRequestPage';
+
+
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -29,6 +32,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/repair-request" element={<ProtectedRoute><RepairRequestPage /></ProtectedRoute>} />
       
       <Route
         path="/"

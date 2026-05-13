@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const Icons = {
   ArrowLeft: () => (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
     </svg>
   ),
@@ -51,16 +51,6 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
     </svg>
   ),
-  Clock: () => (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  ),
-  ChevronRight: () => (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-    </svg>
-  ),
   Users: () => (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -81,71 +71,19 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
     </svg>
   ),
+  ChevronRight: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  ),
 };
 
 // ─── Button Components ────────────────────────────────────────────────────────
-const PrimaryButton = ({ onClick, disabled, children, className = '' }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    className={`
-      relative overflow-hidden inline-flex items-center justify-center gap-2
-      px-4 py-2 rounded-xl font-semibold text-sm text-white
-      bg-gradient-to-r from-cyan-500 to-blue-600
-      shadow-md shadow-cyan-500/25
-      hover:shadow-lg hover:shadow-cyan-500/40
-      hover:-translate-y-0.5
-      active:translate-y-0 active:scale-[0.98]
-      disabled:opacity-50 disabled:cursor-not-allowed
-      transition-all duration-200 ease-out
-      focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2
-      ${className}
-    `}
-  >
-    <span className="absolute inset-0 bg-white/10 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 skew-x-12 pointer-events-none" />
-    {children}
-  </button>
-);
-
-const SecondaryButton = ({ onClick, children, className = '' }) => (
-  <button
-    onClick={onClick}
-    className={`
-      inline-flex items-center justify-center gap-2
-      px-4 py-2 rounded-xl font-semibold text-sm
-      border border-slate-200 dark:border-slate-600
-      text-slate-700 dark:text-slate-300
-      bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
-      hover:bg-slate-50 dark:hover:bg-slate-700
-      hover:border-slate-300 dark:hover:border-slate-500
-      hover:-translate-y-0.5
-      active:translate-y-0 active:scale-[0.98]
-      transition-all duration-200 ease-out
-      focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2
-      ${className}
-    `}
-  >
-    {children}
-  </button>
-);
-
 const SuccessButton = ({ onClick, disabled, children, className = '' }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`
-      relative overflow-hidden inline-flex items-center justify-center gap-2
-      px-4 py-2 rounded-xl font-semibold text-sm text-white
-      bg-gradient-to-r from-emerald-500 to-teal-600
-      shadow-md shadow-emerald-500/25
-      hover:shadow-lg hover:shadow-emerald-500/40
-      hover:-translate-y-0.5
-      active:translate-y-0 active:scale-[0.98]
-      disabled:opacity-50 disabled:cursor-not-allowed
-      transition-all duration-200 ease-out
-      focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2
-      ${className}
-    `}
+    className={`relative overflow-hidden inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 ${className}`}
   >
     <span className="absolute inset-0 bg-white/10 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 skew-x-12 pointer-events-none" />
     {children}
@@ -156,21 +94,18 @@ const DangerButton = ({ onClick, disabled, children, className = '' }) => (
   <button
     onClick={onClick}
     disabled={disabled}
-    className={`
-      relative overflow-hidden inline-flex items-center justify-center gap-2
-      px-4 py-2 rounded-xl font-semibold text-sm text-white
-      bg-gradient-to-r from-red-500 to-rose-600
-      shadow-md shadow-red-500/25
-      hover:shadow-lg hover:shadow-red-500/40
-      hover:-translate-y-0.5
-      active:translate-y-0 active:scale-[0.98]
-      disabled:opacity-50 disabled:cursor-not-allowed
-      transition-all duration-200 ease-out
-      focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2
-      ${className}
-    `}
+    className={`relative overflow-hidden inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-red-500 to-rose-600 shadow-md shadow-red-500/25 hover:shadow-lg hover:shadow-red-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 ${className}`}
   >
     <span className="absolute inset-0 bg-white/10 translate-x-[-100%] hover:translate-x-[100%] transition-transform duration-700 skew-x-12 pointer-events-none" />
+    {children}
+  </button>
+);
+
+const SecondaryButton = ({ onClick, children, className = '' }) => (
+  <button
+    onClick={onClick}
+    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:ring-offset-2 ${className}`}
+  >
     {children}
   </button>
 );
@@ -193,14 +128,7 @@ const Alert = ({ type, message, onDismiss }) => (
 // ─── Section Card ────────────────────────────────────────────────────────────
 const SectionCard = ({ children, className = '', delay = 0 }) => (
   <div
-    className={`
-      bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
-      rounded-2xl border border-slate-200/80 dark:border-slate-700/80
-      shadow-sm hover:shadow-xl
-      transition-all duration-300
-      animate-fadeInUp
-      ${className}
-    `}
+    className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm hover:shadow-xl transition-all duration-300 animate-fadeInUp ${className}`}
     style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
   >
     {children}
@@ -210,33 +138,25 @@ const SectionCard = ({ children, className = '', delay = 0 }) => (
 // ─── Stat Card ───────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, accent, delay = 0 }) => {
   const accentMap = {
-    cyan:    { bg: 'bg-cyan-50 dark:bg-cyan-900/20', icon: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
-    blue:    { bg: 'bg-blue-50 dark:bg-blue-900/20',   icon: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
-    amber:   { bg: 'bg-amber-50 dark:bg-amber-900/20', icon: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
-    purple:  { bg: 'bg-purple-50 dark:bg-purple-900/20', icon: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400' },
+    cyan: 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400',
+    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+    amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
+    purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
   };
   const a = accentMap[accent] ?? accentMap.cyan;
   
   return (
     <div
-      className={`
-        group relative overflow-hidden
-        bg-white dark:bg-slate-800/80
-        border border-slate-100 dark:border-slate-700/60
-        rounded-2xl p-5
-        shadow-sm hover:shadow-lg hover:-translate-y-1
-        transition-all duration-300 ease-out
-        animate-fadeInUp
-      `}
+      className="group relative overflow-hidden bg-white dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/60 rounded-2xl p-5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ease-out animate-fadeInUp"
       style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
     >
-      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${a.bg} rounded-2xl`} />
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${accentMap[accent]} rounded-2xl`} />
       <div className="relative flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">{label}</p>
-          <p className={`text-3xl font-black tabular-nums ${a.text}`}>{value}</p>
+          <p className={`text-3xl font-black tabular-nums ${a}`}>{value}</p>
         </div>
-        <div className={`p-2.5 rounded-xl ${a.icon} text-white shadow-md ring-4 ring-${accent}-200 dark:ring-${accent}-800 flex-shrink-0`}>
+        <div className={`p-2.5 rounded-xl ${a} shadow-md ring-4 ring-${accent}-200 dark:ring-${accent}-800 flex-shrink-0`}>
           <Icon />
         </div>
       </div>
@@ -247,9 +167,9 @@ const StatCard = ({ icon: Icon, label, value, accent, delay = 0 }) => {
 // ─── Role Badge ──────────────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => {
   const map = {
-    staff:      { label: 'Staff',      cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
+    staff: { label: 'Staff', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
     technician: { label: 'Technician', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },
-    other:      { label: 'Other',      cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
+    other: { label: 'Other', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' },
   };
   const { label, cls } = map[role] ?? { label: role, cls: 'bg-slate-100 text-slate-600' };
   return (
@@ -383,14 +303,11 @@ const ApprovalsPage = () => {
 
       {/* Navbar */}
       <header
-        className={`
-          sticky top-0 z-50
-          transition-all duration-300 ease-out
-          ${scrolled
+        className={`sticky top-0 z-50 transition-all duration-300 ease-out ${
+          scrolled
             ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl shadow-sm border-b border-slate-200/60 dark:border-slate-700/60 py-3'
             : 'bg-transparent py-4'
-          }
-        `}
+        }`}
         style={{ animation: 'slideInDown 0.4s ease-out both' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -413,11 +330,9 @@ const ApprovalsPage = () => {
 
       {/* Main Content */}
       <main
-        className={`
-          max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8
-          transition-all duration-500 ease-out
-          ${animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}
-        `}
+        className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-all duration-500 ease-out ${
+          animateIn ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+        }`}
       >
         {/* Alerts */}
         <div className="space-y-3 mb-6">
@@ -450,9 +365,7 @@ const ApprovalsPage = () => {
               <SectionCard key={reg.id} delay={200 + index * 40}>
                 <div className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-                    {/* Left - User Info */}
                     <div className="flex-1 min-w-0">
-                      {/* Header with avatar and name */}
                       <div className="flex items-center gap-3 mb-4">
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
                           {reg.first_name?.charAt(0)}{reg.last_name?.charAt(0)}
@@ -468,7 +381,6 @@ const ApprovalsPage = () => {
                         </div>
                       </div>
 
-                      {/* Contact Info Grid */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
                         <div className="flex items-center gap-2 text-sm">
                           <Icons.Mail />
@@ -480,13 +392,10 @@ const ApprovalsPage = () => {
                         </div>
                         <div className="flex items-center gap-2 text-sm">
                           <Icons.Calendar />
-                          <span className="text-slate-600 dark:text-slate-400">
-                            {formatDate(reg.created_at)}
-                          </span>
+                          <span className="text-slate-600 dark:text-slate-400">{formatDate(reg.created_at)}</span>
                         </div>
                       </div>
 
-                      {/* Role-Specific Details */}
                       {reg.user_type === 'staff' && (
                         <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-xl p-3 mb-4 border border-blue-100 dark:border-blue-800/30">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
@@ -518,7 +427,6 @@ const ApprovalsPage = () => {
                       )}
                     </div>
 
-                    {/* Right - Action Buttons */}
                     <div className="flex flex-row lg:flex-col gap-2 flex-shrink-0">
                       <SuccessButton onClick={() => openApproveModal(reg)} disabled={loading} className="whitespace-nowrap">
                         <Icons.ThumbsUp />
@@ -568,9 +476,9 @@ const ApprovalsPage = () => {
               <SecondaryButton onClick={() => setActionModal(null)} className="flex-1">
                 Cancel
               </SecondaryButton>
-              <PrimaryButton onClick={handleApprove} disabled={loading} className="flex-1">
+              <SuccessButton onClick={handleApprove} disabled={loading} className="flex-1">
                 {loading ? 'Approving...' : 'Approve'}
-              </PrimaryButton>
+              </SuccessButton>
             </div>
           </div>
         </div>
@@ -615,14 +523,29 @@ const ApprovalsPage = () => {
         </div>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
+        @keyframes slideInDown {
+          from { opacity: 0; transform: translateY(-16px); }
+          to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes blob {
+          0% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        .animate-blob { animation: blob 9s infinite ease-in-out; }
+        .animate-fadeInUp { animation: fadeInUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+        .animate-slideInDown { animation: slideInDown 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
       `}</style>
     </div>
   );

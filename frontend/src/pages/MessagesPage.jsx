@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { messageAPI } from '../services/api';
 
 export const MessagesPage = () => {
   const { user } = useAuth();
@@ -12,25 +13,15 @@ export const MessagesPage = () => {
 
   useEffect(() => {
     loadConversations();
-    // Refresh conversations every 10 seconds
     const interval = setInterval(loadConversations, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const loadConversations = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/messages/conversations/all', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setConversations(data.data);
+      const response = await messageAPI.getConversations();
+      if (response.data.success) {
+        setConversations(response.data.data);
       }
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -42,20 +33,12 @@ export const MessagesPage = () => {
 
   const loadAdminList = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:5000/api/users/admins', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setAdminList(data.data);
-        }
+      const response = await messageAPI.getAdmins?.() || await fetch('http://localhost:5000/api/users/admins', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+      }).then(res => res.json());
+      
+      if (response.success) {
+        setAdminList(response.data);
       }
     } catch (error) {
       console.error('Error loading admin list:', error);
@@ -79,7 +62,6 @@ export const MessagesPage = () => {
   };
 
   if (selectedConversation) {
-    // Show chat interface for selected conversation
     return <MessageChatUI conversationId={selectedConversation} onBack={handleBackToList} user={user} />;
   }
 
@@ -204,22 +186,10 @@ const MessageChatUI = ({ conversationId, onBack, user }) => {
 
   const loadMessages = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(
-        `http://localhost:5000/api/messages/messages/${conversationId}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setMessages(data.data.messages);
-        setOtherUser(data.data.otherUser);
+      const response = await messageAPI.getMessages(conversationId);
+      if (response.data.success) {
+        setMessages(response.data.messages);
+        setOtherUser(response.data.otherUser);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -242,31 +212,22 @@ const MessageChatUI = ({ conversationId, onBack, user }) => {
 
     try {
       setSending(true);
-      const token = localStorage.getItem('authToken');
       const messageSubject = messages.length > 0 ? 'Re: ' + (messages[0].subject || 'Message') : subject;
 
-      const response = await fetch('http://localhost:5000/api/messages/messages/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          recipientId: otherUser.id,
-          subject: messageSubject,
-          message: messageText
-        })
+      const response = await messageAPI.sendMessage({
+        recipientId: otherUser.id,
+        subject: messageSubject,
+        message: messageText
       });
 
-      const data = await response.json();
-      if (data.success) {
+      if (response.data.success) {
         setMessageText('');
         if (messages.length === 0) {
           setSubject('');
         }
         loadMessages();
       } else {
-        setError(data.message || 'Failed to send message');
+        setError(response.data.message || 'Failed to send message');
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -282,20 +243,11 @@ const MessageChatUI = ({ conversationId, onBack, user }) => {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`http://localhost:5000/api/messages/messages/${messageId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
+      const response = await messageAPI.deleteMessage(messageId);
+      if (response.data.success) {
         loadMessages();
       } else {
-        setError(data.message || 'Failed to delete message');
+        setError(response.data.message || 'Failed to delete message');
       }
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -406,7 +358,5 @@ const MessageChatUI = ({ conversationId, onBack, user }) => {
     </div>
   );
 };
-
-const useRef = React.useRef;
 
 export default MessagesPage;

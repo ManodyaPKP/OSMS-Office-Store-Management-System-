@@ -40,10 +40,16 @@ export const authAPI = {
     api.post('/users/login', { username, password }),
   
   register: (data) =>
-    axios.post('http://localhost:5000/api/users/register/new', data),
+    api.post('/users/register/new', data),
   
   getProfile: () =>
     api.get('/users/profile'),
+  
+  getProfileMe: () =>
+    api.get('/users/profile/me'),
+  
+  updateProfile: (data) =>
+    api.put('/users/profile/update', data),
   
   changePassword: (userId, oldPassword, newPassword) =>
     api.post(`/users/${userId}/change-password`, {
@@ -58,7 +64,10 @@ export const authAPI = {
     api.post(`/users/registrations/${registrationId}/approve`, { dept_id: deptId }),
 
   rejectRegistration: (registrationId, notes) =>
-    api.post(`/users/registrations/${registrationId}/reject`, { approval_notes: notes })
+    api.post(`/users/registrations/${registrationId}/reject`, { approval_notes: notes }),
+    
+  getAdmins: () =>
+    api.get('/users/admins')
 };
 
 // ===== Department APIs =====
@@ -109,7 +118,7 @@ export const repairAPI = {
     api.get(`/repairs/${id}`),
   
   create: (data) =>
-    api.post('/repairs', data),
+    api.post('/repairs', data),  // CORRECTED: '/repairs' not '/repairstest'
   
   updateStatus: (id, data) =>
     api.put(`/repairs/${id}/status`, data),
@@ -207,6 +216,24 @@ export const profileAPI = {
   
   deleteAccount: (confirmPassword) =>
     api.delete('/users/account', { data: { confirmPassword } })
+};
+
+// ===== Message APIs =====
+export const messageAPI = {
+  getConversations: () =>
+    api.get('/messages/conversations/all'),
+  
+  getMessages: (conversationId) =>
+    api.get(`/messages/${conversationId}`),
+  
+  sendMessage: (data) =>
+    api.post('/messages/messages/send', data),
+  
+  deleteMessage: (messageId) =>
+    api.delete(`/messages/messages/${messageId}`),
+  
+  getUnreadCount: () =>
+    api.get('/messages/unread/count')
 };
 
 export default api;

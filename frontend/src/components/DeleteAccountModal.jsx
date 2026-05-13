@@ -41,7 +41,7 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 dark:bg-slate-800">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-red-600 flex items-center gap-2">
             <span className="text-2xl">⚠️</span>
@@ -49,28 +49,28 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
           </h2>
           <button 
             onClick={onClose} 
-            className="text-slate-500 hover:text-slate-700 text-2xl dark:text-slate-400 dark:hover:text-slate-200"
+            className="text-slate-500 hover:text-slate-700 text-2xl"
           >
             ×
           </button>
         </div>
 
-        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg dark:bg-red-900/20">
-          <p className="text-red-800 dark:text-red-300 font-semibold mb-2">Warning!</p>
-          <p className="text-sm text-red-700 dark:text-red-400">
+        <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-600 rounded-lg">
+          <p className="text-red-800 font-semibold mb-2">Warning!</p>
+          <p className="text-sm text-red-700">
             This action is <strong>permanent</strong> and cannot be undone. 
             All your profile data, messages, and activity will be permanently deleted.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm dark:bg-red-900/30 dark:text-red-300">
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
             ❌ {error}
           </div>
         )}
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-slate-700 mb-2">
             Enter your password to confirm
           </label>
           <input
@@ -78,7 +78,7 @@ const DeleteAccountModal = ({ isOpen, onClose }) => {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Your password"
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
             disabled={loading}
             onKeyPress={(e) => e.key === 'Enter' && handleDelete()}
           />

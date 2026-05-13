@@ -1,4 +1,3 @@
-// Setup Script - Create Demo Users with Correct Password Hashes
 import bcrypt from 'bcrypt';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
@@ -9,7 +8,6 @@ const setupDatabase = async () => {
   console.log('\n🔧 OSMS Database Setup - Creating Demo Users\n');
   
   try {
-    // Create connection
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
@@ -19,21 +17,18 @@ const setupDatabase = async () => {
 
     console.log('✅ Connected to database\n');
 
-    // Generate correct password hash
     const password = 'Password@123';
     const passwordHash = await bcrypt.hash(password, 10);
     
     console.log(`📝 Generated hash for password: "${password}"\n`);
 
-    // Create a default department
-    console.log('📦 Creating default department...');
+    console.log('📦 Creating default department if not exists...');
     await connection.execute(
       `INSERT IGNORE INTO departments (id, name, code, head_name) 
        VALUES (1, 'IT Department', 'IT', 'Admin')`
     );
     console.log('✅ Department ready\n');
 
-    // Create demo users with correct password
     const users = [
       {
         username: 'admin_user',
@@ -41,7 +36,9 @@ const setupDatabase = async () => {
         full_name: 'Admin User',
         designation: 'System Administrator',
         role: 'admin',
-        dept_id: 1
+        dept_id: 1,
+        bio: 'System Administrator',
+        phone: '555-0100'
       },
       {
         username: 'staff_user1',
@@ -49,7 +46,9 @@ const setupDatabase = async () => {
         full_name: 'Staff User',
         designation: 'Office Staff',
         role: 'staff',
-        dept_id: 1
+        dept_id: 1,
+        bio: 'Office Staff Member',
+        phone: '555-0101'
       },
       {
         username: 'tech_user1',
@@ -57,18 +56,19 @@ const setupDatabase = async () => {
         full_name: 'Tech User',
         designation: 'Technician',
         role: 'technician',
-        dept_id: 1
+        dept_id: 1,
+        bio: 'IT Technician',
+        phone: '555-0102'
       }
     ];
 
     console.log('👥 Creating demo users...\n');
     for (const user of users) {
       try {
-        // Try to insert if doesn't exist
         await connection.execute(
           `INSERT IGNORE INTO users 
-           (username, email, password_hash, full_name, designation, role, dept_id, is_active)
-           VALUES (?, ?, ?, ?, ?, ?, ?, true)`,
+           (username, email, password_hash, full_name, designation, role, dept_id, bio, phone, is_active)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, true)`,
           [
             user.username,
             user.email,
@@ -76,15 +76,23 @@ const setupDatabase = async () => {
             user.full_name,
             user.designation,
             user.role,
-            user.dept_id
+            user.dept_id,
+            user.bio,
+            user.phone
           ]
         );
 
-        // Also update if already exists
         await connection.execute(
-          `UPDATE users SET password_hash = ?, full_name = ?, designation = ?, role = ?, is_active = true
+          `UPDATE users SET password_hash = ?, full_name = ?, designation = ?, role = ?, bio = ?, phone = ?, is_active = true
            WHERE username = ?`,
-          [passwordHash, user.full_name, user.designation, user.role, user.username]
+          [passwordHash, user.full_name, user.designation, user.role, user.bio, user.phone, user.username]
+        );
+
+        // Also add user_settings
+        await connection.execute(
+          `INSERT IGNORE INTO user_settings (user_id, theme, notifications, email_notifications)
+           SELECT id, 'light', TRUE, TRUE FROM users WHERE username = ?`,
+          [user.username]
         );
 
         console.log(`✅ ${user.username} (${user.role})`);

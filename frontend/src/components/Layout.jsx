@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { messageAPI } from '../services/api';
 
 export const Sidebar = ({ isOpen }) => {
   const { hasRole } = useAuth();
@@ -58,9 +59,8 @@ export const Navbar = ({ userName, onLogout }) => {
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadCounts();
-    // Refresh counts every 15 seconds
     const interval = setInterval(loadCounts, 15000);
     return () => clearInterval(interval);
   }, [hasRole]);
@@ -88,19 +88,10 @@ export const Navbar = ({ userName, onLogout }) => {
       }
     }
 
-    // Load unread messages
     try {
-      const response = await fetch('http://localhost:5000/api/messages/unread/count', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      const data = await response.json();
-      if (data && data.success) {
-        setUnreadMessages(data.data.unreadCount || 0);
+      const response = await messageAPI.getUnreadCount();
+      if (response.data.success) {
+        setUnreadMessages(response.data.data.unreadCount || 0);
       }
     } catch (error) {
       console.debug('Failed to load unread messages:', error);
