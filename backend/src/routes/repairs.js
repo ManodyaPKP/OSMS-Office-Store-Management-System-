@@ -142,11 +142,70 @@ router.post('/', verifyToken, async (req, res) => {
     console.log('Executing query with values:', values);
 
     const result = await executeQuery(query, values);
+    const repairId = result.insertId;
+
+    // Auto-register asset when repair is created
+    try {
+      // Determine asset type from asset_name
+      const assetTypeMap = {
+        'laptop': 'laptop',
+        'desktop': 'desktop',
+        'printer': 'printer',
+        'monitor': 'monitor',
+        'phone': 'other',
+        'mobile': 'other'
+      };
+      
+      const assetType = Object.keys(assetTypeMap).find(key => 
+        asset_name?.toLowerCase().includes(key)
+      ) ? assetTypeMap[Object.keys(assetTypeMap).find(key => 
+        asset_name?.toLowerCase().includes(key)
+      )] : 'other';
+
+      // Get default department (ID: 1)
+      const deptId = 1;
+
+      // Create asset record
+      const assetQuery = `
+        INSERT INTO assets (
+          dept_id,
+          asset_type,
+          model,
+          serial_number,
+          incharge_name,
+          status,
+          received_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const assetValues = [
+        deptId,
+        assetType,
+        model || asset_name || 'Unknown',
+        serial_number || null,
+        current_username || handed_over_by || 'Unknown',
+        'active',
+        new Date().toISOString().split('T')[0]
+      ];
+
+      const assetResult = await executeQuery(assetQuery, assetValues);
+      
+      // Update repair with asset_id
+      await executeQuery(
+        'UPDATE repair_jobs SET asset_id = ? WHERE id = ?',
+        [assetResult.insertId, repairId]
+      );
+
+      console.log('Asset auto-registered with ID:', assetResult.insertId);
+    } catch (assetError) {
+      console.error('Error auto-registering asset:', assetError);
+      // Continue even if asset creation fails
+    }
 
     res.status(201).json({
       success: true,
       message: 'Repair job created',
-      id: result.insertId
+      id: repairId
     });
   } catch (error) {
     console.error('Error creating repair:', error);

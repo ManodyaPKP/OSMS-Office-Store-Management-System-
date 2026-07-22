@@ -459,7 +459,7 @@ const AssetsPage = () => {
         </SectionCard>
       </main>
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideInDown {
           from { opacity: 0; transform: translateY(-16px); }
           to { opacity: 1; transform: translateY(0); }

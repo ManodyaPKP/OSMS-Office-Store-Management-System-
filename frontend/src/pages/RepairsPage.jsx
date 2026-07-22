@@ -117,7 +117,9 @@ const STATUS_MAP = {
   pending:     { label: 'Pending',     cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',         dot: 'bg-amber-500',   bar: 'bg-amber-500'   },
   in_progress: { label: 'In Progress', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',             dot: 'bg-blue-500',    bar: 'bg-blue-500'    },
   in_repair:   { label: 'In Repair',   cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300',     dot: 'bg-violet-500',  bar: 'bg-violet-500'  },
-  cancelled:   { label: 'Cancelled',   cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',                 dot: 'bg-red-500',     bar: 'bg-red-500'     },
+  decline:     { label: 'Declined',    cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',       dot: 'bg-rose-500',    bar: 'bg-rose-500'    },
+  yes:         { label: 'YES',         cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', dot: 'bg-emerald-500', bar: 'bg-emerald-500' },
+  no:          { label: 'NO',          cls: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400',            dot: 'bg-slate-400',   bar: 'bg-slate-400'   },
 };
 
 const StatusPill = ({ status }) => {
@@ -369,8 +371,17 @@ const ModalActionBtn = ({ onClick, icon: Icon, label, variant = 'ghost' }) => {
 };
 
 // ─── Repair Details Modal ─────────────────────────────────────────────────────
-const RepairDetailsModal = ({ repair, onClose, onDelete }) => {
+const RepairDetailsModal = ({ repair, onClose, onDelete, onStatusUpdated }) => {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(repair?.repair_status || 'pending');
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
+
+  useEffect(() => {
+    setSelectedStatus(repair?.repair_status || 'pending');
+    setStatusMessage('');
+  }, [repair]);
+
   if (!repair) return null;
 
   const printRepair = () => {
@@ -462,6 +473,63 @@ const RepairDetailsModal = ({ repair, onClose, onDelete }) => {
             </div>
           </div>
 
+          <div className="px-7 pb-4 border-b border-slate-100 dark:border-slate-700/60">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Edit Status</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <div className="min-w-[200px]">
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Current status</label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 text-slate-900 dark:text-slate-100 text-sm px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="in_repair">In Progress</option>
+                      <option value="completed">Completed</option>
+                      <option value="decline">Decline</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!repair) return;
+                      setSavingStatus(true);
+                      setStatusMessage('');
+                      try {
+                        const completedDate = selectedStatus === 'completed'
+                          ? new Date().toISOString().split('T')[0]
+                          : null;
+                        const response = await repairAPI.updateStatus(repair.id, {
+                          repair_status: selectedStatus,
+                          completed_date: completedDate
+                        });
+                        if (response.data?.success) {
+                          setStatusMessage('Status updated successfully.');
+                          if (onStatusUpdated) onStatusUpdated(selectedStatus, completedDate);
+                        } else {
+                          throw new Error(response.data?.message || 'Status update failed');
+                        }
+                      } catch (err) {
+                        setStatusMessage(getErrorMessage(err));
+                      } finally {
+                        setSavingStatus(false);
+                      }
+                    }}
+                    className="inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-3 text-sm font-bold shadow-md shadow-cyan-500/20 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
+                    disabled={savingStatus || selectedStatus === repair.repair_status}
+                  >
+                    {savingStatus ? 'Saving…' : 'Save Status'}
+                  </button>
+                </div>
+                {statusMessage && (
+                  <p className="mt-3 text-sm font-medium text-slate-600 dark:text-slate-300">{statusMessage}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* ── Scrollable body ── */}
           <div className="overflow-y-auto flex-1 px-7 py-6 space-y-7 rr-scrollbar">
 
@@ -486,7 +554,7 @@ const RepairDetailsModal = ({ repair, onClose, onDelete }) => {
             <ModalSection icon={Icons.Calendar} title="Maintenance History" accent="amber">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5">Previous Maintenance</p>
-                <StatusPill status={repair.previous_maintenance === 'yes' ? 'completed' : 'pending'} />
+                <StatusPill status={repair.previous_maintenance === 'yes' ? 'yes' : 'no'} />
               </div>
               <DetailRow label="Handed Over Date" value={formatDate(repair.handed_over_date)} />
               <DetailRow label="Receipt Book & Page No." value={repair.receipt_book_info} fullWidth />
@@ -502,7 +570,7 @@ const RepairDetailsModal = ({ repair, onClose, onDelete }) => {
               <DetailRow label="Date of Error" value={formatDate(repair.error_date)} />
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1.5">Previous Similar Error</p>
-                <StatusPill status={repair.previous_error === 'yes' ? 'completed' : 'pending'} />
+                <StatusPill status={repair.previous_error === 'yes' ? 'yes' : 'no'} />
               </div>
             </ModalSection>
 
@@ -569,10 +637,9 @@ const RepairsPage = () => {
   const statusTabs = [
     { value: '',            label: 'All',         dot: ''             },
     { value: 'pending',     label: 'Pending',     dot: 'bg-amber-500' },
-    { value: 'in_repair',   label: 'In Repair',   dot: 'bg-violet-500'},
-    { value: 'in_progress', label: 'In Progress', dot: 'bg-blue-500'  },
+    { value: 'in_repair',   label: 'In Progress', dot: 'bg-blue-500'  },
     { value: 'completed',   label: 'Completed',   dot: 'bg-emerald-500'},
-    { value: 'cancelled',   label: 'Cancelled',   dot: 'bg-red-500'   },
+    { value: 'decline',     label: 'Decline',     dot: 'bg-rose-500'   },
   ];
 
   useEffect(() => {
@@ -827,11 +894,12 @@ const RepairsPage = () => {
                 <tbody>
                   {filtered.map((repair) => {
                     const status = STATUS_MAP[repair.repair_status];
+
                     return (
                       <tr
                         key={repair.id}
                         onClick={() => setSelected(repair)}
-                        className="group relative border-b border-slate-50 dark:border-slate-700/30 last:border-0 hover:bg-cyan-50/50 dark:hover:bg-cyan-900/10 cursor-pointer transition-colors duration-150"
+                        className="group relative border-b border-slate-50 dark:border-slate-700/30 last:border-0 hover:bg-cyan-50/50 dark:hover:bg-cyan-900/10 cursor-pointer transition-all duration-150"
                       >
                         {/* Left accent on hover */}
                         <td className="px-5 py-4 relative">
@@ -900,7 +968,17 @@ const RepairsPage = () => {
         </div>
       </main>
 
-      <RepairDetailsModal repair={selectedRepair} onClose={() => setSelected(null)} onDelete={handleDeleteRepair} />
+      <RepairDetailsModal
+        repair={selectedRepair}
+        onClose={() => setSelected(null)}
+        onDelete={handleDeleteRepair}
+        onStatusUpdated={(newStatus, completedDate) => {
+          setSelected((prev) => prev ? { ...prev, repair_status: newStatus, completed_date: completedDate } : prev);
+          loadRepairs();
+          loadStats();
+          showSuccess('Repair status updated successfully.');
+        }}
+      />
 
       <style>{`
         @keyframes slideInDown { from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)} }

@@ -12,6 +12,7 @@ import ApprovalsPage from './pages/ApprovalsPage';
 import ProfilePage from './pages/ProfilePage';
 import MessagesPage from './pages/MessagesPage';
 import RepairRequestPage from './pages/RepairRequestPage';
+import DuplicateSerialsPage from './pages/DuplicateSerialsPage';
 
 
 
@@ -89,6 +90,15 @@ function AppRoutes() {
       />
 
       <Route
+        path="/duplicates"
+        element={
+          <ProtectedRoute>
+            <DuplicateSerialsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/messages"
         element={
           <ProtectedRoute>
@@ -104,7 +114,7 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <ThemeProvider>
           <AppRoutes />

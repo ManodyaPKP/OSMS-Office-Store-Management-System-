@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS repair_jobs (
   completed_item TEXT,
   
   -- Status Fields
-  repair_status ENUM('pending', 'in_repair', 'completed', 'cancelled') DEFAULT 'pending',
+  repair_status ENUM('pending', 'in_repair', 'completed', 'cancelled', 'decline') DEFAULT 'pending',
   submitted_date DATE NOT NULL,
   completed_date DATE,
   

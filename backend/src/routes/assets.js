@@ -9,12 +9,14 @@ router.get('/stats/summary', async (req, res) => {
   try {
     const stats = await executeQuery(`
       SELECT 
-        COUNT(*) as total_assets,
-        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_count,
-        SUM(CASE WHEN status = 'under_repair' THEN 1 ELSE 0 END) as under_repair_count,
-        SUM(CASE WHEN status = 'repaired' THEN 1 ELSE 0 END) as repaired_count,
-        SUM(CASE WHEN status = 'condemned' THEN 1 ELSE 0 END) as condemned_count
-      FROM assets
+        COUNT(DISTINCT a.id) as total_assets,
+        SUM(CASE WHEN a.status = 'active' THEN 1 ELSE 0 END) as active_count,
+        SUM(CASE WHEN a.status = 'under_repair' THEN 1 ELSE 0 END) as under_repair_count,
+        SUM(CASE WHEN a.status = 'repaired' THEN 1 ELSE 0 END) as repaired_count,
+        SUM(CASE WHEN a.status = 'condemned' THEN 1 ELSE 0 END) as condemned_count
+      FROM assets a
+      INNER JOIN repair_jobs r ON a.id = r.asset_id
+      WHERE a.received_date IS NOT NULL
     `);
 
     res.json({ success: true, data: stats[0] });

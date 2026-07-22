@@ -1,14 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { repairAPI, assetAPI, authAPI } from '../services/api';
+import { repairAPI, assetAPI, authAPI, assetAnalysisAPI } from '../services/api';
 import { getErrorMessage, formatDate, getStatusLabel } from '../utils/helpers';
-import { Card, Badge, Alert, LoadingSpinner, EmptyState } from '../components/UI';
-import {
-  BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend
-} from 'recharts';
 
 let pendingCountRefreshInterval = null;
 
@@ -72,6 +66,17 @@ const Icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
     </svg>
   ),
+  Eye: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1.5 12s3.75-7.5 10.5-7.5 10.5 7.5 10.5 7.5-3.75 7.5-10.5 7.5S1.5 12 1.5 12z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15.75A3.75 3.75 0 1 0 12 8.25a3.75 3.75 0 0 0 0 7.5z" />
+    </svg>
+  ),
+  Close: () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
   ChevronRight: () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -93,7 +98,6 @@ const Icons = {
 // ─── Animated Counter ─────────────────────────────────────────────────────────
 const AnimatedNumber = ({ value, prefix = '', suffix = '', duration = 1200 }) => {
   const [display, setDisplay] = useState(0);
-  const startRef = useRef(null);
 
   useEffect(() => {
     if (value === 0) { setDisplay(0); return; }
@@ -163,28 +167,20 @@ const StatCard = ({ icon: Icon, label, value, accent, prefix = '', suffix = '', 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 const StatusPill = ({ status }) => {
   const map = {
-    completed:   'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
-    pending:     'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
-    in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    cancelled:   'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    completed:   { label: 'Completed',   cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', dot: 'bg-emerald-500' },
+    pending:     { label: 'Pending',     cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', dot: 'bg-amber-500' },
+    in_progress: { label: 'In Progress', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', dot: 'bg-blue-500' },
+    in_repair:   { label: 'In Repair',   cls: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300', dot: 'bg-violet-500' },
+    decline:     { label: 'Declined',    cls: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300', dot: 'bg-rose-500' },
   };
-  const cls = map[status] ?? 'bg-slate-100 text-slate-600';
+  const { label = getStatusLabel(status), cls = 'bg-slate-100 text-slate-600', dot = 'bg-slate-400' } = map[status] ?? {};
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${cls}`}>
-      {getStatusLabel(status)}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
+      {label}
     </span>
   );
 };
-
-<button
-  onClick={() => navigate('/repair-request')}
-  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl hover:shadow-lg transition-all duration-200 flex items-center gap-2"
->
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-  New Repair Request
-</button>
 
 // ─── Role badge for pending regs ──────────────────────────────────────────────
 const RolePill = ({ role }) => {
@@ -197,31 +193,6 @@ const RolePill = ({ role }) => {
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${cls}`}>
       {label}
     </span>
-  );
-};
-
-// ─── Tooltip for recharts ──────────────────────────────────────────────────────
-const ChartTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl px-3 py-2 text-sm">
-      {label && <p className="font-semibold text-slate-600 dark:text-slate-300 mb-1">{label}</p>}
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color ?? p.fill }} className="font-bold"> 
-          {p.name}: ${(p.value || 0).toLocaleString()}
-        </p>
-      ))}
-    </div>
-  );
-};
-
-const PieTooltip = ({ active, payload }) => {
-  if (!active || !payload?.length) return null;
-  const p = payload[0];
-  return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl px-3 py-2 text-sm">
-      <p style={{ color: p.payload.color }} className="font-bold">{p.name}: {p.value}</p>
-    </div>
   );
 };
 
@@ -289,6 +260,7 @@ const Dashboard = () => {
   const [stats, setStats]                         = useState(null);
   const [assets, setAssets]                       = useState(null);
   const [repairs, setRepairs]                     = useState([]);
+  const [declinedRepairs, setDeclinedRepairs]     = useState([]);
   const [pendingRegistrations, setPendingReg]     = useState([]);
   const [pendingCount, setPendingCount]           = useState(0);
   const [loading, setLoading]                     = useState(true);
@@ -296,6 +268,8 @@ const Dashboard = () => {
   const [profilePictureUrl, setProfilePicUrl]     = useState(null);
   const [scrolled, setScrolled]                   = useState(false);
   const [animateIn, setAnimateIn]                 = useState(false);
+  const [selectedRepair, setSelectedRepair]       = useState(null);
+  const [duplicateGroups, setDuplicateGroups]     = useState([]);
 
   // Scroll-aware navbar
   useEffect(() => {
@@ -316,6 +290,19 @@ const Dashboard = () => {
     return () => { if (pendingCountRefreshInterval) clearInterval(pendingCountRefreshInterval); };
   }, [hasRole]);
 
+  useEffect(() => {
+    if (!selectedRepair) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSelectedRepair(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedRepair]);
+
   const loadDashboardData = async () => {
     try {
       setLoading(true);
@@ -323,6 +310,8 @@ const Dashboard = () => {
         repairAPI.getStats(),
         assetAPI.getStats(),
         repairAPI.getAll({ status: '' }),
+        repairAPI.getAll({ status: 'decline' }),
+        assetAnalysisAPI.getDuplicates(),
       ];
       if (hasRole(['admin'])) requests.push(authAPI.getPendingRegistrations());
 
@@ -330,7 +319,9 @@ const Dashboard = () => {
       if (results[0]?.data?.success) setStats(results[0].data.data);
       if (results[1]?.data?.success) setAssets(results[1].data.data);
       if (results[2]?.data?.success) setRepairs(results[2].data.data.slice(0, 8));
-      if (hasRole(['admin']) && results[3]?.data?.success) setPendingReg(results[3].data.data.slice(0, 5));
+      if (results[3]?.data?.success) setDeclinedRepairs(results[3].data.data.slice(0, 8));
+      if (results[4]?.data?.success) setDuplicateGroups(results[4].data.data || []);
+      if (hasRole(['admin']) && results[5]?.data?.success) setPendingReg(results[5].data.data.slice(0, 5));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -367,6 +358,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => { logout(); navigate('/login'); };
+  const closeRepairIssueModal = () => setSelectedRepair(null);
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -383,19 +375,12 @@ const Dashboard = () => {
     );
   }
 
-  // ── Chart data ────────────────────────────────────────────────────────────
-  const pieData = stats ? [
-    { name: 'Completed',   value: stats.completed_repairs   || 0, color: '#10b981' },
-    { name: 'Pending',     value: stats.pending_repairs     || 0, color: '#f59e0b' },
-    { name: 'In Progress', value: stats.in_progress_repairs || 0, color: '#3b82f6' },
-  ].filter(d => d.value > 0) : [];
-
-  const barData = [
-    { name: 'Assessment', value: stats?.total_assessment_cost || 0, fill: '#06b6d4' },
-    { name: 'Invoice',    value: stats?.total_invoice_cost    || 0, fill: '#6366f1' },
-  ];
-
   const avatarInitial = user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'U';
+  const duplicateAlertCount = duplicateGroups.filter((item) => item.duplicate_count >= 3).length;
+  const criticalDuplicateCount = duplicateGroups.filter((item) => item.duplicate_count >= 5).length;
+  const duplicateSectionTone = criticalDuplicateCount > 0 ? 'border-red-400' : duplicateAlertCount > 0 ? 'border-amber-400' : 'border-cyan-400';
+  const duplicateSectionBg = criticalDuplicateCount > 0 ? 'bg-red-50/80 dark:bg-red-950/20' : duplicateAlertCount > 0 ? 'bg-amber-50/80 dark:bg-amber-950/20' : 'bg-cyan-50/80 dark:bg-cyan-950/20';
+  const duplicateSectionText = criticalDuplicateCount > 0 ? 'text-red-700 dark:text-red-300' : duplicateAlertCount > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-cyan-700 dark:text-cyan-300';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/20 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -460,6 +445,11 @@ const Dashboard = () => {
               <span className="hidden sm:inline">{user?.full_name || user?.username || 'Profile'}</span>
             </button>
 
+            <NavBtn onClick={() => navigate('/duplicates')} variant="primary">
+              <Icons.Bell />
+              <span className="hidden sm:inline">Duplicates</span>
+            </NavBtn>
+
             {/* Admin approvals */}
             {hasRole(['admin']) && (
               <NavBtn onClick={() => navigate('/approvals')} variant="amber">
@@ -501,7 +491,7 @@ const Dashboard = () => {
             </span>
           </h2>
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-1 font-medium">
-            Here's your operational summary for today.
+            Here&apos;s your operational summary for today.
           </p>
         </div>
 
@@ -512,85 +502,75 @@ const Dashboard = () => {
         )}
 
         {/* ── Stat cards ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
           <StatCard icon={Icons.Wrench}  label="Total Repairs" value={stats?.total_repairs     || 0} accent="cyan"    delay={40}  />
           <StatCard icon={Icons.Check}   label="Completed"     value={stats?.completed_repairs  || 0} accent="emerald" delay={80}  />
           <StatCard icon={Icons.Clock}   label="Pending"       value={stats?.pending_repairs    || 0} accent="amber"   delay={120} />
           <StatCard icon={Icons.Cog}     label="In Progress"   value={stats?.in_progress_repairs|| 0} accent="blue"    delay={160} />
-          <StatCard icon={Icons.Dollar}  label="Total Cost"    value={stats?.total_invoice_cost || 0} accent="violet"  prefix="$" delay={200} />
-          <StatCard icon={Icons.Monitor} label="Total Assets"  value={assets?.total_assets      || 0} accent="slate"   delay={240} />
+          <StatCard icon={Icons.Monitor} label="Total Assets"  value={assets?.total_assets      || 0} accent="slate"   delay={200} />
         </div>
 
-        {/* ── Charts row ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Charts removed per request */}
 
-          {/* Pie chart */}
-          <Section delay={280}>
-            <SectionHead title="Repair Status" subtitle="Current distribution" />
-            <div className="p-6">
-              {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%" cy="50%"
-                      innerRadius={60} outerRadius={100}
-                      paddingAngle={4}
-                      dataKey="value"
-                      strokeWidth={0}
-                    >
-                      {pieData.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<PieTooltip />} />
-                    <Legend
-                      iconType="circle" iconSize={8}
-                      formatter={(v) => <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">{v}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-48 text-slate-400 gap-2">
-                  <span className="text-4xl">📊</span>
-                  <p className="text-sm font-medium">No repair data yet</p>
+        <Section delay={320} className={`mb-6 border-l-4 ${duplicateSectionTone}`}>
+          <SectionHead
+            title="Duplicate Serial Numbers"
+            subtitle={duplicateAlertCount > 0 ? `${duplicateAlertCount} serial group(s) need review` : 'No duplicate serial numbers detected'}
+            action={<ViewAllBtn onClick={() => navigate('/duplicates')} />}
+          />
+          <div className="p-5">
+            {duplicateGroups.length > 0 ? (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/duplicates')}
+                  className={`w-full rounded-2xl border p-4 text-left transition hover:shadow-sm ${duplicateSectionBg} ${duplicateSectionText}`}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-[0.25em]">{criticalDuplicateCount > 0 ? 'Critical duplication alert' : 'Duplicate serial notice'}</p>
+                      <p className="mt-1 text-sm font-semibold">
+                        {duplicateGroups.length} serial number group(s) were registered more than once.
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-2 rounded-full border border-current/20 px-3 py-1.5 text-xs font-black uppercase tracking-[0.25em]">
+                      <Icons.Bell />
+                      {criticalDuplicateCount > 0 ? `${criticalDuplicateCount} critical` : `${duplicateAlertCount} flagged`}
+                    </div>
+                  </div>
+                </button>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  {duplicateGroups.slice(0, 4).map((item) => (
+                    <div key={`${item.serial_number}-${item.model}`} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-800/60">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-black text-slate-800 dark:text-slate-100">{item.serial_number}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{item.model || 'Unspecified model'}</p>
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] ${item.duplicate_count >= 5 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'}`}>
+                          {item.duplicate_count}×
+                        </span>
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                        First registered: {formatDate(item.first_registered)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Last registered: {formatDate(item.last_registered)}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          </Section>
-
-          {/* Bar chart */}
-          <Section delay={320}>
-            <SectionHead title="Cost Breakdown" subtitle="Assessment vs Invoice totals" />
-            <div className="p-6">
-              {stats ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={barData} barSize={40}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 12, fontWeight: 600, fill: '#94a3b8' }}
-                      axisLine={false} tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
-                      axisLine={false} tickLine={false}
-                      tickFormatter={(v) => `$${v.toLocaleString()}`}
-                    />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(6,182,212,0.06)' }} />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                      {barData.map((entry, i) => (
-                        <Cell key={i} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-48 text-slate-400">No data</div>
-              )}
-            </div>
-          </Section>
-        </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-slate-400">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 text-xl">✓</div>
+                <p className="text-sm font-semibold">No duplicate serial numbers found</p>
+                <p className="text-xs">Asset serials are unique across the system.</p>
+              </div>
+            )}
+          </div>
+        </Section>
        
         {/* ── Admin: Pending Registrations ─────────────────────────────── */}
         {hasRole(['admin']) && (
@@ -677,7 +657,7 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {repairs.map((repair, i) => (
+                  {repairs.map((repair) => (
                     <tr
                       key={repair.id}
                       className="
@@ -698,12 +678,22 @@ const Dashboard = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 max-w-[200px]">
-                        <span className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 block">
-                          {repair.issue || 'N/A'}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedRepair(repair);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-cyan-700 transition-colors hover:bg-cyan-100 dark:border-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300 dark:hover:bg-cyan-900/35"
+                          title="View issue details"
+                          aria-label={`View issue details for repair ${String(repair.id).padStart(4, '0')}`}
+                        >
+                          <Icons.Eye />
+                          <span>View</span>
+                        </button>
                       </td>
                       <td className="px-6 py-4">
-                        <StatusPill status={repair.status} />
+                        <StatusPill status={repair.repair_status} />
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
@@ -723,6 +713,135 @@ const Dashboard = () => {
             </div>
           )}
         </Section>
+
+        {selectedRepair && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+            <button
+              type="button"
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={closeRepairIssueModal}
+              aria-label="Close issue details"
+            />
+            <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-5 dark:border-slate-700/70">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-400">Issue Details</p>
+                  <h3 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">
+                    Repair #{String(selectedRepair.id).padStart(4, '0')}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeRepairIssueModal}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  aria-label="Close"
+                >
+                  <Icons.Close />
+                </button>
+              </div>
+
+              <div className="space-y-4 px-6 py-6">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                    <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Asset</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {selectedRepair.asset_name || 'Unknown asset'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                    <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Status</p>
+                    <div className="mt-2">
+                      <StatusPill status={selectedRepair.repair_status} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4 dark:border-cyan-900/40 dark:bg-cyan-950/20">
+                  <p className="text-[11px] font-black uppercase tracking-[0.25em] text-cyan-700 dark:text-cyan-300">Error / Issue Description</p>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700 dark:text-slate-200">
+                    {selectedRepair.issue_description || selectedRepair.issue || 'No issue details available.'}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                    <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Submitted</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {formatDate(selectedRepair.submitted_date || selectedRepair.created_at)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                    <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Asset ID</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                      {selectedRepair.asset_id ? `#${selectedRepair.asset_id}` : 'Not linked'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Declined Repairs Section ─────────────────────────────────── */}
+        {declinedRepairs.length > 0 && (
+          <Section delay={440} className="mb-6 border-l-4 border-red-400">
+            <SectionHead
+              title="Declined Repairs"
+              subtitle={`${declinedRepairs.length} repair request(s) declined`}
+              action={<ViewAllBtn onClick={() => navigate('/repairs')} />}
+            />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-700/60 bg-red-50/50 dark:bg-red-900/10">
+                    {['ID', 'Asset', 'Issue', 'Date'].map((h) => (
+                      <th
+                        key={h}
+                        className="px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest text-red-600 dark:text-red-400"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {declinedRepairs.map((repair) => (
+                    <tr
+                      key={repair.id}
+                      className="
+                        group border-b border-slate-50 dark:border-slate-700/30 last:border-0
+                        hover:bg-red-50/50 dark:hover:bg-red-900/10
+                        cursor-pointer transition-colors duration-150
+                      "
+                      onClick={() => navigate(`/repairs/${repair.id}`)}
+                    >
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500 font-mono">
+                          #{String(repair.id).padStart(4, '0')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                          {repair.asset_name || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 max-w-[200px]">
+                        <span className="text-sm text-slate-500 dark:text-slate-400 line-clamp-1 block">
+                          {repair.issue || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                          {formatDate(repair.created_at)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
 
       </main>
     </div>

@@ -9,6 +9,7 @@ import approvalRoutes from './src/routes/approvals.js';
 import userRoutes from './src/routes/users.js';
 import profileRoutes from './src/routes/profiles.js';
 import messageRoutes from './src/routes/messages.js';
+import assetAnalysisRoutes from './src/routes/asset-analysis.js';
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/asset-analysis', assetAnalysisRoutes);
 
 // 404 handler
 app.use((req, res) => {

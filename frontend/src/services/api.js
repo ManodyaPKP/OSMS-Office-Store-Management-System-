@@ -110,6 +110,11 @@ export const assetAPI = {
 };
 
 // ===== Repair APIs =====
+export const assetAnalysisAPI = {
+  getDuplicates: () =>
+    api.get('/asset-analysis/duplicates')
+};
+
 export const repairAPI = {
   getAll: (filters) =>
     api.get('/repairs', { params: filters }),
