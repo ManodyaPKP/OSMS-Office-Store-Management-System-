@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
-    open: true
+    open: true,
+    allowedHosts: ['osms.dgi.lk']
   },
   build: {
     outDir: 'dist',
