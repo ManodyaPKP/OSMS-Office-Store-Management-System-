@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { getErrorMessage } from '../utils/helpers';
-import sideImage from '../assets/login01.gif'; // You 
-import logoImage from '../assets/logo1.png'; // can r
-// eplace this 
-// with an actual image path or URL
+//import logoImage from '../assets/logo1.png';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -32,7 +29,7 @@ const LoginPage = () => {
       console.log('✅ Login successful:', response.data);
       
       if (response.data.success) {
-        login(response.data.user, response.data.token);
+        login(response.data.user);
         
         // Save remember me preference
         if (rememberMe) {
@@ -86,19 +83,11 @@ const LoginPage = () => {
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 bg-[#ffffff] dark:bg-slate-900">
         <div className="max-w-md w-full space-y-8">
-          {/* Logo/Brand - Replace the gear icon with your logo */}
           <div className="text-center">
-            <div className="flex justify-center mb-4">
-              {/* Replace this div with your logo image */}
-              <img 
-                src={logoImage}
-                alt="Department of Government Information"
-                className="w-70 h-auto object-contain" // Adjust size as needed
-              />
-            </div>
             <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white">
-              Welcome back
+              Welcome back 
             </h2>
+            <h3>Asset & Repair Hub</h3>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
               Please enter your details to sign in
             </p>
@@ -129,7 +118,7 @@ const LoginPage = () => {
                 <div className="flex-1">
                   <h4 className="font-bold text-amber-800 dark:text-amber-300 mb-1">{error}</h4>
                   <p className="text-sm text-amber-700 dark:text-amber-400">
-                    Your registration is awaiting administrator review. You'll be able to log in once approved.
+                    Your registration is awaiting administrator review. You&apos;ll be able to log in once approved.
                   </p>
                 </div>
               </div>
@@ -242,24 +231,7 @@ const LoginPage = () => {
                 'Log in'
               )}
             </button>
-
-            {/* Sign Up Link */}
-            <div className="text-center">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Don't have an account?{' '}
-                <Link to="/register" className="font-medium text-cyan-600 hover:text-cyan-500 dark:text-cyan-400 dark:hover:text-cyan-300 transition-colors">
-                  Sign up
-                </Link>
-              </p>
-            </div>
           </form>
-
-          {/* Demo Credentials Hint */}
-          <div className="mt-6 p-4  rounded-xl">
-            <p className="text-xl text-slate-500 dark:text-slate-400 text-center">
-              <strong>⚙️</strong>
-            </p>
-          </div>
         </div>
       </div>
 

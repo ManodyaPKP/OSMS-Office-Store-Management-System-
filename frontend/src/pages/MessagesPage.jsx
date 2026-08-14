@@ -34,7 +34,7 @@ export const MessagesPage = () => {
   const loadAdminList = async () => {
     try {
       const response = await messageAPI.getAdmins?.() || await fetch('http://localhost:5000/api/users/admins', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        credentials: 'include'
       }).then(res => res.json());
       
       if (response.success) {

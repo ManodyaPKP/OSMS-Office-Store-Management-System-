@@ -451,9 +451,8 @@ const ProfilePage = () => {
 
   const loadProfilePicture = async (userId) => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/users/profile/picture/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         const blob = await response.blob();

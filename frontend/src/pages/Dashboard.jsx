@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { repairAPI, assetAPI, authAPI, assetAnalysisAPI } from '../services/api';
 import { getErrorMessage, formatDate, getStatusLabel } from '../utils/helpers';
 
-let pendingCountRefreshInterval = null;
-
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const Icons = {
   Wrench: () => (
@@ -261,8 +259,6 @@ const Dashboard = () => {
   const [assets, setAssets]                       = useState(null);
   const [repairs, setRepairs]                     = useState([]);
   const [declinedRepairs, setDeclinedRepairs]     = useState([]);
-  const [pendingRegistrations, setPendingReg]     = useState([]);
-  const [pendingCount, setPendingCount]           = useState(0);
   const [loading, setLoading]                     = useState(true);
   const [error, setError]                         = useState('');
   const [profilePictureUrl, setProfilePicUrl]     = useState(null);
@@ -282,12 +278,6 @@ const Dashboard = () => {
     loadDashboardData();
     loadProfilePicture();
     setTimeout(() => setAnimateIn(true), 60);
-
-    if (hasRole(['admin'])) {
-      loadPendingCount();
-      pendingCountRefreshInterval = setInterval(loadPendingCount, 15000);
-    }
-    return () => { if (pendingCountRefreshInterval) clearInterval(pendingCountRefreshInterval); };
   }, [hasRole]);
 
   useEffect(() => {
@@ -313,7 +303,6 @@ const Dashboard = () => {
         repairAPI.getAll({ status: 'decline' }),
         assetAnalysisAPI.getDuplicates(),
       ];
-      if (hasRole(['admin'])) requests.push(authAPI.getPendingRegistrations());
 
       const results = await Promise.all(requests);
       if (results[0]?.data?.success) setStats(results[0].data.data);
@@ -321,7 +310,6 @@ const Dashboard = () => {
       if (results[2]?.data?.success) setRepairs(results[2].data.data.slice(0, 8));
       if (results[3]?.data?.success) setDeclinedRepairs(results[3].data.data.slice(0, 8));
       if (results[4]?.data?.success) setDuplicateGroups(results[4].data.data || []);
-      if (hasRole(['admin']) && results[5]?.data?.success) setPendingReg(results[5].data.data.slice(0, 5));
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -331,11 +319,10 @@ const Dashboard = () => {
 
   const loadProfilePicture = async () => {
     try {
-      const token  = localStorage.getItem('authToken');
       const userId = user?.id;
       if (!userId) return;
       const response = await fetch(`http://localhost:5000/api/users/profile/picture/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       if (response.ok) {
         const blob = await response.blob();
@@ -346,16 +333,7 @@ const Dashboard = () => {
     }
   };
 
-  const loadPendingCount = async () => {
-    try {
-      const response = await authAPI.getPendingRegistrations();
-      if (response?.data?.success && Array.isArray(response.data.data)) {
-        setPendingCount(response.data.data.length);
-      }
-    } catch {
-      // silent
-    }
-  };
+
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const closeRepairIssueModal = () => setSelectedRepair(null);
@@ -454,14 +432,7 @@ const Dashboard = () => {
             {hasRole(['admin']) && (
               <NavBtn onClick={() => navigate('/approvals')} variant="amber">
                 <Icons.Clipboard />
-                <span className="hidden sm:inline">
-                  {pendingCount > 0 ? `${pendingCount} Pending` : 'Approvals'}
-                </span>
-                {pendingCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-white/30 text-[10px] font-black flex items-center justify-center animate-pulse">
-                    {pendingCount}
-                  </span>
-                )}
+                <span className="hidden sm:inline">Approvals</span>
               </NavBtn>
             )}
 
@@ -572,68 +543,6 @@ const Dashboard = () => {
           </div>
         </Section>
        
-        {/* ── Admin: Pending Registrations ─────────────────────────────── */}
-        {hasRole(['admin']) && (
-          <Section delay={360} className="mb-6 border-l-4 border-amber-400">
-            <SectionHead
-              title="Pending Registrations"
-              subtitle="New user approval requests"
-              action={<ViewAllBtn onClick={() => navigate('/approvals')} />}
-            />
-            <div className="p-4">
-              {pendingRegistrations.length > 0 ? (
-                <div className="space-y-2">
-                  {pendingRegistrations.map((reg, i) => (
-                    <div
-                      key={reg.id}
-                      onClick={() => navigate('/approvals')}
-                      className="
-                        group flex items-center justify-between gap-3
-                        px-4 py-3 rounded-xl cursor-pointer
-                        bg-slate-50 dark:bg-slate-700/40
-                        border border-slate-100 dark:border-slate-700
-                        hover:border-amber-300 dark:hover:border-amber-600
-                        hover:bg-amber-50/50 dark:hover:bg-amber-900/10
-                        transition-all duration-200
-                      "
-                      style={{ animationDelay: `${i * 40}ms` }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-black text-sm flex-shrink-0 shadow-sm">
-                          {reg.first_name?.charAt(0) || '?'}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                              {reg.first_name} {reg.last_name}
-                            </span>
-                            <RolePill role={reg.user_type} />
-                          </div>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
-                            {reg.department_name || reg.company_shop_name || 'N/A'} · {reg.email}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="text-[11px] text-slate-400 hidden sm:inline">{formatDate(reg.created_at)}</span>
-                        <span className="text-slate-300 dark:text-slate-500 group-hover:text-amber-500 transition-colors">
-                          <Icons.ChevronRight />
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 gap-2 text-slate-400">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 text-xl">✓</div>
-                  <p className="text-sm font-semibold">All caught up!</p>
-                  <p className="text-xs">No pending registrations</p>
-                </div>
-              )}
-            </div>
-          </Section>
-        )}
-
         {/* ── Recent Repairs table ─────────────────────────────────────── */}
         <Section delay={400}>
           <SectionHead

@@ -56,7 +56,6 @@ export const Sidebar = ({ isOpen }) => {
 
 export const Navbar = ({ userName, onLogout }) => {
   const { hasRole } = useAuth();
-  const [pendingCount, setPendingCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   useEffect(() => {
@@ -66,28 +65,6 @@ export const Navbar = ({ userName, onLogout }) => {
   }, [hasRole]);
 
   const loadCounts = async () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) return;
-
-    if (hasRole(['admin'])) {
-      try {
-        const response = await fetch('http://localhost:5000/api/users/registrations/pending', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        const data = await response.json();
-        if (data && data.success && Array.isArray(data.data)) {
-          setPendingCount(data.data.length);
-        }
-      } catch (error) {
-        console.debug('Failed to load pending count:', error);
-      }
-    }
-
     try {
       const response = await messageAPI.getUnreadCount();
       if (response.data.success) {
@@ -121,23 +98,6 @@ export const Navbar = ({ userName, onLogout }) => {
             </a>
           )}
 
-          {hasRole(['admin']) && pendingCount > 0 && (
-            <a 
-              href="/approvals" 
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg hover:shadow-md transition-all hover:border-amber-400"
-              title="View pending registration approvals"
-            >
-              <span className="text-lg">📋</span>
-              <span className="text-sm font-semibold text-amber-900">
-                {pendingCount > 0 ? `${pendingCount} Pending` : 'Approvals'}
-              </span>
-              {pendingCount > 0 && (
-                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-gradient-to-br from-amber-500 to-orange-600 rounded-full animate-pulse">
-                  {pendingCount}
-                </span>
-              )}
-            </a>
-          )}
           <span className="text-sm text-slate-600">{userName}</span>
           <button onClick={onLogout} className="btn-secondary text-sm">Logout</button>
         </div>

@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
 import departmentRoutes from './src/routes/departments.js';
 import assetRoutes from './src/routes/assets.js';
 import repairRoutes from './src/routes/repairs.js';
@@ -28,6 +29,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

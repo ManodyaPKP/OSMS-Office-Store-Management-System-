@@ -26,13 +26,12 @@ export const MessageChat = ({ conversationId, onBack, user }) => {
 
   const loadMessages = async () => {
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(
         `http://localhost:5000/api/messages/messages/${conversationId}`,
         {
           method: 'GET',
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         }
@@ -64,14 +63,13 @@ export const MessageChat = ({ conversationId, onBack, user }) => {
 
     try {
       setSending(true);
-      const token = localStorage.getItem('authToken');
 
       const messageSubject = messages.length > 0 ? 'Re: ' + (messages[0].subject || 'Message') : subject;
 
       const response = await fetch('http://localhost:5000/api/messages/send', {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -105,11 +103,10 @@ export const MessageChat = ({ conversationId, onBack, user }) => {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:5000/api/messages/messages/${messageId}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });

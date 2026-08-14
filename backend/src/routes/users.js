@@ -1,12 +1,26 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import { executeQuery } from '../database.js';
+import { signAccessToken } from '../config/jwt.js';
 import { verifyToken, checkRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/'
+  });
+
+  return res.json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
 
 // Configure multer for memory storage (for profile pictures)
 const storage = multer.memoryStorage();
@@ -105,22 +119,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        dept_id: user.dept_id,
-        full_name: user.full_name
-      },
-      process.env.JWT_SECRET || 'your_jwt_secret_key_change_this_in_production',
-      { expiresIn: process.env.JWT_EXPIRE || '8h' }
-    );
+    const token = signAccessToken({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      dept_id: user.dept_id,
+      full_name: user.full_name
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 8 * 60 * 60 * 1000,
+      path: '/'
+    });
 
     res.json({
       success: true,
       message: 'Login successful',
-      token,
       user: {
         id: user.id,
         username: user.username,
@@ -740,169 +757,6 @@ router.get('/admins', verifyToken, async (req, res) => {
       message: 'Failed to fetch admins'
     });
   }
-});
-
-// ============================================
-// REGISTRATION ENDPOINTS
-// ============================================
-
-// REGISTER new user (Public endpoint)
-router.post('/register/new', async (req, res) => {
-  try {
-    const { 
-      first_name, last_name, email, mobile_number, user_type,
-      department_name, section_name, unit_name, position,
-      company_shop_name, company_phone, address,
-      id_number, registration_note, username, password
-    } = req.body;
-
-    console.log(`\n📝 REGISTRATION ATTEMPT: username="${username}", user_type="${user_type}"`);
-
-    if (!first_name || !last_name || !mobile_number || !user_type) {
-      return res.status(400).json({
-        success: false,
-        message: 'First name, last name, mobile number, and user type are required'
-      });
-    }
-
-    if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username and password are required'
-      });
-    }
-
-    if (user_type === 'other') {
-      if (!id_number || !email || !registration_note) {
-        return res.status(400).json({
-          success: false,
-          message: 'For Other users, ID Number, Email, and Note are required'
-        });
-      }
-    }
-
-    const password_hash = await bcrypt.hash(password, 10);
-
-    const result = await executeQuery(
-      `INSERT INTO pending_users 
-       (username, email, password_hash, first_name, last_name, mobile_number, user_type,
-        department_name, section_name, unit_name, position,
-        company_shop_name, company_phone, address,
-        id_number, registration_note)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        username, email, password_hash, first_name, last_name, mobile_number, user_type,
-        department_name || null, section_name || null, unit_name || null, position || null,
-        company_shop_name || null, company_phone || null, address || null,
-        id_number || null, registration_note || null
-      ]
-    );
-
-    console.log(`✅ Registration inserted: ID=${result.insertId}, username="${username}"`);
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration submitted successfully. Please wait for admin approval.',
-      registration_id: result.insertId
-    });
-  } catch (error) {
-    console.error(`❌ Registration error for username="${req.body.username}":`, error.message);
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({
-        success: false,
-        message: 'Username or email already exists'
-      });
-    }
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// GET pending registrations (Admin only)
-router.get('/registrations/pending', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    const pending = await executeQuery(
-      `SELECT * FROM pending_users WHERE status = 'pending' ORDER BY created_at DESC`
-    );
-
-    res.json({ success: true, data: pending });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// APPROVE registration (Admin only)
-router.post('/registrations/:id/approve', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { dept_id } = req.body;
-
-    const pending = await executeQuery(
-      'SELECT * FROM pending_users WHERE id = ? AND status = "pending"',
-      [id]
-    );
-
-    if (pending.length === 0) {
-      return res.status(404).json({ success: false, message: 'Pending registration not found' });
-    }
-
-    const p = pending[0];
-
-    const result = await executeQuery(
-      `INSERT INTO users (username, email, password_hash, full_name, designation, role, dept_id, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, true)`,
-      [
-        p.username,
-        p.email,
-        p.password_hash,
-        `${p.first_name} ${p.last_name}`,
-        p.position || p.company_shop_name || 'User',
-        p.user_type === 'technician' ? 'technician' : 'staff',
-        dept_id || null
-      ]
-    );
-
-    await executeQuery(
-      `UPDATE pending_users SET status = 'approved', approved_by = ?, approval_date = NOW() 
-       WHERE id = ?`,
-      [req.user.id, id]
-    );
-
-    res.json({
-      success: true,
-      message: 'Registration approved successfully',
-      user_id: result.insertId
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// REJECT registration (Admin only)
-router.post('/registrations/:id/reject', verifyToken, checkRole(['admin']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { approval_notes } = req.body;
-
-    const pending = await executeQuery(
-      'SELECT * FROM pending_users WHERE id = ? AND status = "pending"',
-      [id]
-    );
-
-    if (pending.length === 0) {
-      return res.status(404).json({ success: false, message: 'Pending registration not found' });
-    }
-
-    await executeQuery(
-      `UPDATE pending_users SET status = 'rejected', approval_notes = ?, approved_by = ?, approval_date = NOW()
-       WHERE id = ?`,
-      [approval_notes || null, req.user.id, id]
-    );
-
-    res.json({ success: true, message: 'Registration rejected' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-  
 });
 
 export default router;

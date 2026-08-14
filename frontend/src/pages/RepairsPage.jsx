@@ -680,7 +680,8 @@ const RepairsPage = () => {
     try {
       const res = await fetch(`http://localhost:5000/api/repairs/${repairId}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
       });
       if (res.ok) {
         await loadRepairs();
